@@ -35,7 +35,7 @@ Current milestone: Stage 2 (Design): 2a done, 2b next | Next gate: G2 on TBD
 - 2026-11-27 Stage 1 draft: REQUIREMENTS.md, QUESTIONS.md, DISCOVERY.md (availability-evidence row added). Branch `docs/stage-1-intake`, [PR #2](https://github.com/swa01wk/recoup-v1/pull/2).
 - 2026-11-27 Stage 1 answers (delegated): Q-01 – Q-35 decided or accepted; R-54 – R-56 added; ADR-010 – ADR-013; PRD revision 5 (support plan names), in the repo and the project copy.
 - 2026-11-27 G1 signed, conditional (product owner); PRD revision 6 (build before interviews).
-- 2026-11-27 Stage 2a: ARCHITECTURE.md, AGENT_ARCHITECTURE.md, ADR-015 – ADR-024, docs/contracts/ (OpenAPI, events, claim state machine, SLA contract format, upload formats, DB schema draft); Q-36 – Q-39 raised. Branch `docs/stage-2a-architecture`.
+- 2026-11-27 Stage 2a: ARCHITECTURE.md, AGENT_ARCHITECTURE.md, ADR-015 – ADR-024, docs/contracts/ (OpenAPI, events, claim state machine, SLA contract format, upload formats, DB schema draft); Q-36 – Q-39 raised. Branch `docs/stage-2a-architecture`, [PR #4](https://github.com/swa01wk/recoup-v1/pull/4).
 
 ## Recent decisions
 - [ADR-001](../docs/adr/ADR-001-free-check-first.md): Free missed-credit check first. Accepted.
