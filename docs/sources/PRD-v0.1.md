@@ -2,7 +2,7 @@
 
 **Status:** Draft for product owner review · **Version:** v0.1 · **Date:** 2026-11-27
 **Owner:** Product owner (Recoup). This PRD is the input to PROCESS.md Stage 1; `REQUIREMENTS.md` (R-xx, NFR-xx) is derived from it in the new repo.
-**Inputs:** `claude/product-strategy-initial-recommendation.md`, `claude/repository-baseline.md`, `claude/decision-log.md` (D1, D2), Recoup board (https://claude.ai/artifact/FvaaBYkbTX4d6xwJok8cpc).
+**Inputs:** `docs/sources/strategy-review-2026-11-26.md`, `docs/discovery/DISCOVERY.md`, `docs/adr/ADR-001-free-check-first.md` (D1), `docs/adr/ADR-002-new-repo-via-process.md` (D2), Recoup board (https://claude.ai/artifact/FvaaBYkbTX4d6xwJok8cpc).
 
 > **Read this first.** Everything about customers in this PRD is a hypothesis. No prospective customer has been interviewed yet. Personas, journeys, KPIs and value claims become requirements only after Gate G1, which needs interview evidence.
 
@@ -223,3 +223,4 @@ Waste remediation and savings (hackathon scanners stay in the old repo), commitm
 
 - **v0.1, 2026-11-27:** First draft, written by Claude from the strategy review, decisions D1–D2 and the repository baseline, for the product owner to revise. Discovery-phase edits allowed in place until G3, per PROCESS.md.
 - **v0.1, 2026-11-27 (revision 2):** Added "Decisions this PRD rests on" (§1); softened the claim-filing statement in §2 (most SLAs need a request; some instance-level terms waive charges automatically); noted in §13 that D1 row 0 ships in M0.
+- **v0.1, 2026-11-27 (revision 3):** Updated the "Inputs" line to the seed docs' repo paths (strategy review, DISCOVERY.md, ADR-001, ADR-002) after the repo bootstrap. Approved by the product owner. No other change.
