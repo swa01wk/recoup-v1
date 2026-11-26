@@ -89,7 +89,7 @@ Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels
 | J-05 | **Track and reconcile** | Case submitted | Update case status (granted / denied with reason) → match the posted credit to its billing Credit line → record variance vs estimate | Credit shown as posted (verified), or denied with reason | M2 |
 | J-06 | **Deadline radar** | New billing cycle | Flag claimable incidents nearing their deadline → notify the owner | No claim expires unnoticed | M2 (Should) |
 
-**Branches to design for:** support plan below Business (AWS Health API unavailable → fall back to Health Dashboard export or customer-supplied incident list); logs unavailable (eligibility shown as *unproven*, claim not marked ready); credit under AWS's $1 minimum (not claimable); single-AZ incident against a region-level SLA (likely not eligible; say why).
+**Branches to design for:** support plan without AWS Health API access (Basic; Developer until 2027-01-01) → fall back to public AWS Health events and a customer-supplied incident list; logs unavailable (eligibility shown as *unproven*, claim not marked ready); credit under AWS's $1 minimum (not claimable); single-AZ incident against a region-level SLA (likely not eligible; say why).
 
 ## 7. User stories
 
@@ -127,7 +127,7 @@ Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels
 | F-12 | Per-claim evidence trail | Partial | Hashes, contract source, approval, case, credit line | M2 | Should (distinctive, hypothesis) |
 | F-13 | SLA credit ledger | Mixed savings/credit ledger | Separate ledger; never summed with savings | M2 | Must |
 | F-14 | Jira/Slack handoff to the SRE | Email to one topic | Task to P-02 to supply logs | Later | Could |
-| F-15 | Automatic filing via AWS Support API | None | Requires Business+ support and approval binding | Later | Could |
+| F-15 | Automatic filing via AWS Support API | None | Requires a plan with Support API access (Business Support+, Enterprise Support or Unified Operations) and approval binding | Later | Could |
 | F-16 | Waste remediation and savings | DEMO | — | — | Won't (v1) |
 
 ## 9. Agent steps and maturity
@@ -179,7 +179,7 @@ Competitive context (as of 2026-11-26): Next Signal markets SLA monitoring with 
 - **Tenant isolation** end to end.
 - **Durability and audit.** State survives restarts; every consequential action is audited; audit failures are visible, not silent.
 - **Untrusted input.** AWS case text, logs, postmortems and Health event text are data, never instructions.
-- **Support-plan dependency.** AWS Health API and Support API need Business, Enterprise On-Ramp or Enterprise Support; design a fallback for lower plans.
+- **Support-plan dependency.** AWS Health API and Support API need AWS Business Support+, Enterprise Support or Unified Operations; accounts not yet moved to these plans can use Business (classic), Enterprise On-Ramp or Enterprise until those plans end on 2027-01-01. Design a fallback for accounts without these plans.
 
 ## 13. Release plan
 
@@ -198,7 +198,7 @@ Dates are set at Gate G3.
 | Credits too small or rare (KPI-10) | B fails as a business | Interviews before M1 build-out; kill rule |
 | Customers won't share logs or billing data | No account-specific evidence | No-access path; minimal permission list; customer-supplied exports |
 | Next Signal already does reconciliation | Differentiation collapses to price | Demo before G1 |
-| Low support plans block Health/Support APIs | Narrower segment | Fallback inputs; segment on Business+ |
+| Low support plans block Health/Support APIs | Narrower segment | Fallback inputs; segment on Business Support+ or higher |
 | SLA terms change | Wrong eligibility | Versioned catalog with source hashes; periodic recheck |
 | Contingency pricing needs reconciliation we can't yet do | Can't invoice | F-10 in M2 before charging |
 
@@ -226,3 +226,4 @@ Waste remediation and savings (hackathon scanners stay in the old repo), commitm
 - **v0.1, 2026-11-27 (revision 2):** Added "Decisions this PRD rests on" (§1); softened the claim-filing statement in §2 (most SLAs need a request; some instance-level terms waive charges automatically); noted in §13 that D1 row 0 ships in M0.
 - **v0.1, 2026-11-27 (revision 3):** Updated the seed docs' references to their repo paths after the repo bootstrap: the "Inputs" line (strategy review, DISCOVERY.md, ADR-001, ADR-002), the decision-log reference in §1 (now the ADRs) and the baseline source in §3 (now DISCOVERY.md). Approved by the product owner. No other change.
 - **v0.1, 2026-11-27 (revision 4):** Corrected §3 against `docs/discovery/DISCOVERY.md`: the role is single-account today; added the remediation role and EC2 stop path (drop); stated the calculator and catalog defects; restated the claim-submission stub; state is DynamoDB with a silent in-memory fallback. Dispositions now link ADR-003 to ADR-006. Approved by the product owner. No other section changed.
+- **v0.1, 2026-11-27 (revision 5):** Updated AWS Support plan names to the current plans (Business Support+, Enterprise Support, Unified Operations; classic plans until 2027-01-01) in §6 branches, §8 F-15, §12 and §14, and replaced the unverified "Health Dashboard export" fallback with public Health events and a customer-supplied incident list. Answers QUESTIONS.md Q-10 and Q-17. Approved by the product owner (delegated to Claude, 2026-11-27). No other change.
