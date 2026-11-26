@@ -1,5 +1,5 @@
 # STATUS: Recoup v1        Updated: 2026-11-27
-Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not passed | Next gate: G1 (conditional, ADR-014) on TBD
+Current milestone: Stage 2 (Design) | Next gate: G2 on TBD
 
 | Milestone | Scope | Status | Exit date |
 |---|---|---|---|
@@ -10,7 +10,7 @@ Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not p
 ## Gates
 | Gate | Status | Signed by | Date |
 |---|---|---|---|
-| G1 Requirements baseline | **Ready to sign, with conditions** ([ADR-014](../docs/adr/ADR-014-build-before-interviews.md)). Open: the Next Signal demo; a PRD revision for ADR-014; the product owner's signature. Discovery checkpoint before M2. See [G1 check](../docs/product/REQUIREMENTS.md#gate-g1-check). | Product owner (Q-09) | — |
+| G1 Requirements baseline | **Signed, conditional** ([ADR-014](../docs/adr/ADR-014-build-before-interviews.md)). Condition: no M2 until ≥10 account reports and ≥5 conversations, read against the Q-35 kill thresholds. Recommended before M1 build-out: the Next Signal demo; the AISPL terms check (Q-20). See [G1 check](../docs/product/REQUIREMENTS.md#gate-g1-check). | Product owner | 2026-11-27 |
 
 ## M0 specs
 | Spec | Requirements | Screens | Branch / PR | Status | Owner |
@@ -31,6 +31,7 @@ Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not p
 ## Stage log
 - 2026-11-27 Stage 1 draft: REQUIREMENTS.md, QUESTIONS.md, DISCOVERY.md (availability-evidence row added). Branch `docs/stage-1-intake`, [PR #2](https://github.com/swa01wk/recoup-v1/pull/2).
 - 2026-11-27 Stage 1 answers (delegated): Q-01 – Q-35 decided or accepted; R-54 – R-56 added; ADR-010 – ADR-013; PRD revision 5 (support plan names), in the repo and the project copy.
+- 2026-11-27 G1 signed, conditional (product owner); PRD revision 6 (build before interviews).
 
 ## Recent decisions
 - [ADR-001](../docs/adr/ADR-001-free-check-first.md): Free missed-credit check first. Accepted.

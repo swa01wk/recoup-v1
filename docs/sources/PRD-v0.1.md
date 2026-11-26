@@ -4,7 +4,7 @@
 **Owner:** Product owner (Recoup). This PRD is the input to PROCESS.md Stage 1; `REQUIREMENTS.md` (R-xx, NFR-xx) is derived from it in the new repo.
 **Inputs:** `docs/sources/strategy-review-2026-11-26.md`, `docs/discovery/DISCOVERY.md`, `docs/adr/ADR-001-free-check-first.md` (D1), `docs/adr/ADR-002-new-repo-via-process.md` (D2), Recoup board (https://claude.ai/artifact/FvaaBYkbTX4d6xwJok8cpc).
 
-> **Read this first.** Everything about customers in this PRD is a hypothesis. No prospective customer has been interviewed yet. Personas, journeys, KPIs and value claims become requirements only after Gate G1, which needs interview evidence.
+> **Read this first.** Everything about customers in this PRD is a hypothesis. No prospective customer has been interviewed yet. Gate G1 was signed with conditions on 2026-11-27 (`docs/adr/ADR-014-build-before-interviews.md`): we build M0 and M1 on these hypotheses and validate them through the free check before the pilot (M2) starts.
 
 ---
 
@@ -59,7 +59,7 @@ Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels
 1. Show a prospect, with no AWS access, which recent AWS incidents might have earned them credits (M1).
 2. With read-only access, produce an account-specific list of credits still claimable, with one ready-to-file claim (M1).
 3. For pilot partners, take a claim from approval to a confirmed posted credit, with every dollar labeled by stage (M2).
-4. Learn from 10 interviews whether SLA credits are material enough to sell (KPI-02, KPI-10).
+4. Learn from the free check's account reports and follow-up conversations whether SLA credits are material enough to sell (KPI-01, KPI-02, KPI-10), before the pilot starts (ADR-014).
 
 **Non-goals (v1)**
 - Any write to a customer's AWS account.
@@ -115,7 +115,7 @@ Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels
 | F-00 | Honest state and money model | DEMO (fake Recovered/Verified, mixed savings and credits) | No success shown before billing confirms; SLA credit stages only (eligible → approved → submitted → granted/denied → posted) | M0 | Must |
 | F-01 | Read-only account connection | IMPLEMENTED | Add billing-data and AWS Health read; show permission list; connection test | M1 | Must |
 | F-02 | Incident detection and account matching | Dropped | AWS Health (account-specific + public) matched to billed services/regions | M1 | Must |
-| F-03 | SLA contract catalog | 1 contract | 3–5 contracts chosen from interview spend data; versioned, source-hashed | M1 | Must |
+| F-03 | SLA contract catalog | 1 contract | 3–5 contracts chosen per `docs/product/QUESTIONS.md` Q-03, checked against connected accounts' spend; versioned, source-hashed | M1 | Must |
 | F-04 | Eligibility and credit calculation | REPLAY, interval math wrong, exclusions hardcoded | Per-interval availability per contract definition; exclusions evaluated; $1 floor | M1 | Must |
 | F-05 | Billed charges from billing data | Fixture | Charges for service/region/month from CUR / Data Exports | M1 | Must |
 | F-06 | Claim packet with deadline | Replay packet | AWS required fields per contract; deadline computed | M1 | Must |
@@ -147,7 +147,7 @@ No maturity level is claimed until tests show it.
 
 | ID | Hypothesis | Proof checkpoint |
 |---|---|---|
-| V-01 | Eligible customers lose credits because filing is effortful and deadlines pass | ≥50% of interviewees had a claimable incident in 12 months and call lost credits a real problem |
+| V-01 | Eligible customers lose credits because filing is effortful and deadlines pass | ≥50% of connected accounts had a claimable incident in 12 months (KPI-02), and follow-up conversations call lost credits a real problem |
 | V-02 | Evidence from the customer's own logs, per exact contract version, raises the grant rate | Pilot grant rate ≥70% and above partners' past experience |
 | M-01 | Claim-to-billing-line reconciliation is trusted enough to invoice against | A partner pays a contingency invoice without its own check; zero disputes |
 | M-02 | Claim outcomes across customers make eligibility predictions better than anyone else's | After enough claims, predicted vs actual grant outcomes measurably agree (threshold set at Stage 1) |
@@ -159,8 +159,8 @@ Competitive context (as of 2026-11-26): Next Signal markets SLA monitoring with 
 
 | ID | Metric | Target (hypothesis) | Measured by |
 |---|---|---|---|
-| KPI-01 | Interviews completed | 10 in 2 weeks (5 FinOps, 3 SRE/platform, 2 MSP) | Interview log |
-| KPI-02 | Share of interviewees with ≥1 claimable incident in 12 months | ≥50% to confirm; well below → kill | Interview tally |
+| KPI-01 | Discovery evidence before M2 | ≥10 account-specific reports and ≥5 follow-up conversations | Report records; conversation log |
+| KPI-02 | Share of connected accounts with ≥1 claimable incident in 12 months | ≥50% to confirm; well below → kill | Account reports: proven claims in the open claim window, plus public incidents matched to billed services and regions over 12 months (estimate) |
 | KPI-03 | No-access check → read-only connection | ≥30% | Product analytics |
 | KPI-04 | Time from connection to report | ≤24 hours | Job timestamps |
 | KPI-05 | Claims filed per connected account | ≥1 in the pilot window | Claim records |
@@ -168,7 +168,7 @@ Competitive context (as of 2026-11-26): Next Signal markets SLA monitoring with 
 | KPI-07 | Estimate accuracy | Posted within ±10% of estimate | Reconciliation records |
 | KPI-08 | SRE time per claim | <30 minutes | Partner self-report |
 | KPI-09 | Paid agreements | ≥1 contingency agreement in the pilot | Contracts |
-| KPI-10 | Expected annual credits per partner | Below ~$10–15k → kill B | Pilot data |
+| KPI-10 | Expected annual credits per partner | Below ~$10–15k → kill B | Account-report estimates before M2; pilot data after |
 
 ## 12. Constraints and non-functional needs (become NFR-xx)
 
@@ -189,15 +189,15 @@ Competitive context (as of 2026-11-26): Next Signal markets SLA monitoring with 
 | M1 Free missed-credit check | F-01 to F-07 | J-01, J-02, J-03 | A connected test account gets a correct report; estimator live |
 | M2 Pilot | F-08 to F-13 | J-04, J-05, J-06 | One real claim reconciled to a posted credit for a design partner |
 
-Dates are set at Gate G3.
+M2 starts only after the discovery checkpoint in ADR-014 (KPI-01 met, KPI-02 and KPI-10 read against the kill thresholds). Dates are set at Gate G3.
 
 ## 14. Dependencies and risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Credits too small or rare (KPI-10) | B fails as a business | Interviews before M1 build-out; kill rule |
+| Credits too small or rare (KPI-10) | B fails as a business | Free-check reports and conversations before M2 (ADR-014); kill rule |
 | Customers won't share logs or billing data | No account-specific evidence | No-access path; minimal permission list; customer-supplied exports |
-| Next Signal already does reconciliation | Differentiation collapses to price | Demo before G1 |
+| Next Signal already does reconciliation | Differentiation collapses to price | Demo before M1 build-out (ADR-014) |
 | Low support plans block Health/Support APIs | Narrower segment | Fallback inputs; segment on Business Support+ or higher |
 | SLA terms change | Wrong eligibility | Versioned catalog with source hashes; periodic recheck |
 | Contingency pricing needs reconciliation we can't yet do | Can't invoice | F-10 in M2 before charging |
@@ -227,3 +227,4 @@ Waste remediation and savings (hackathon scanners stay in the old repo), commitm
 - **v0.1, 2026-11-27 (revision 3):** Updated the seed docs' references to their repo paths after the repo bootstrap: the "Inputs" line (strategy review, DISCOVERY.md, ADR-001, ADR-002), the decision-log reference in §1 (now the ADRs) and the baseline source in §3 (now DISCOVERY.md). Approved by the product owner. No other change.
 - **v0.1, 2026-11-27 (revision 4):** Corrected §3 against `docs/discovery/DISCOVERY.md`: the role is single-account today; added the remediation role and EC2 stop path (drop); stated the calculator and catalog defects; restated the claim-submission stub; state is DynamoDB with a silent in-memory fallback. Dispositions now link ADR-003 to ADR-006. Approved by the product owner. No other section changed.
 - **v0.1, 2026-11-27 (revision 5):** Updated AWS Support plan names to the current plans (Business Support+, Enterprise Support, Unified Operations; classic plans until 2027-01-01) in §6 branches, §8 F-15, §12 and §14, and replaced the unverified "Health Dashboard export" fallback with public Health events and a customer-supplied incident list. Answers QUESTIONS.md Q-10 and Q-17. Approved by the product owner (delegated to Claude, 2026-11-27). No other change.
+- **v0.1, 2026-11-27 (revision 6):** Build before interviews (ADR-014): the "Read this first" note, §4 goal 4, §11 KPI-01, KPI-02 and KPI-10 (what they measure), §13 (M2 entry checkpoint), §14 (two mitigations), and for consistency §8 F-03 (how contracts are chosen) and §10 V-01 (proof checkpoint). KPI targets are unchanged. Approved by the product owner. No other change.
