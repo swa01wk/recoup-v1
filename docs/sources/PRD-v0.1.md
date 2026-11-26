@@ -16,7 +16,7 @@ The first release is a **free missed-credit check** (decision D1). It is both th
 
 ### Decisions this PRD rests on
 
-The decision log (`claude/decision-log.md`; ADRs in the new repo) owns these decisions. This PRD links to them rather than restating them.
+The ADRs (`docs/adr/ADR-001-free-check-first.md` for D1, `docs/adr/ADR-002-new-repo-via-process.md` for D2) own these decisions. This PRD links to them rather than restating them.
 
 | Decision | What it shapes in this PRD |
 |---|---|
@@ -33,7 +33,7 @@ The decision log (`claude/decision-log.md`; ADRs in the new repo) owns these dec
 
 ## 3. Current state: the hackathon build (baseline)
 
-Source: `claude/repository-baseline.md`, repo `swa01wk/recoup` @ `d009df7`. Labels per project rules.
+Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels per project rules.
 
 | Capability | Status | Disposition in the new version |
 |---|---|---|
@@ -223,4 +223,4 @@ Waste remediation and savings (hackathon scanners stay in the old repo), commitm
 
 - **v0.1, 2026-11-27:** First draft, written by Claude from the strategy review, decisions D1–D2 and the repository baseline, for the product owner to revise. Discovery-phase edits allowed in place until G3, per PROCESS.md.
 - **v0.1, 2026-11-27 (revision 2):** Added "Decisions this PRD rests on" (§1); softened the claim-filing statement in §2 (most SLAs need a request; some instance-level terms waive charges automatically); noted in §13 that D1 row 0 ships in M0.
-- **v0.1, 2026-11-27 (revision 3):** Updated the "Inputs" line to the seed docs' repo paths (strategy review, DISCOVERY.md, ADR-001, ADR-002) after the repo bootstrap. Approved by the product owner. No other change.
+- **v0.1, 2026-11-27 (revision 3):** Updated the seed docs' references to their repo paths after the repo bootstrap: the "Inputs" line (strategy review, DISCOVERY.md, ADR-001, ADR-002), the decision-log reference in §1 (now the ADRs) and the baseline source in §3 (now DISCOVERY.md). Approved by the product owner. No other change.
