@@ -1,5 +1,5 @@
 # STATUS: Recoup v1        Updated: 2026-11-27
-Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not passed | Next gate: G1 on TBD (after interviews and the Next Signal demo)
+Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not passed | Next gate: G1 (conditional, ADR-014) on TBD
 
 | Milestone | Scope | Status | Exit date |
 |---|---|---|---|
@@ -10,7 +10,7 @@ Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not p
 ## Gates
 | Gate | Status | Signed by | Date |
 |---|---|---|---|
-| G1 Requirements baseline | **Not passed.** Waits on: 10 interviews (KPI-01, 0 so far) to confirm the framing; the Next Signal demo; the product owner's signature. Every other criterion passes. See [G1 check](../docs/product/REQUIREMENTS.md#gate-g1-check-re-checked-2026-11-27-after-the-delegated-answers). | Product owner (Q-09) | — |
+| G1 Requirements baseline | **Ready to sign, with conditions** ([ADR-014](../docs/adr/ADR-014-build-before-interviews.md)). Open: the Next Signal demo; a PRD revision for ADR-014; the product owner's signature. Discovery checkpoint before M2. See [G1 check](../docs/product/REQUIREMENTS.md#gate-g1-check). | Product owner (Q-09) | — |
 
 ## M0 specs
 | Spec | Requirements | Screens | Branch / PR | Status | Owner |
@@ -22,7 +22,8 @@ Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not p
 
 ## Open questions and risks
 - Questions: [QUESTIONS.md](../docs/product/QUESTIONS.md). All decided on 2026-11-27 under delegation, except Q-04, Q-06, Q-07 and Q-08, which interviews must validate. Five AWS verification tasks are listed there.
-- Interview additions: ask each interviewee their support plan, who sells them AWS (AISPL is the biggest unknown, Q-20), their account structure, any past SLA credit rows, and their reaction to a 20% contingency.
+- Discovery: interviews are replaced by the free check (ADR-014). Before M2: at least 10 account reports and 5 conversations, read against the Q-35 kill thresholds.
+- Before M1 build-out (cheap, can change scope): the Next Signal demo; the AISPL terms check (Q-20).
 - Time-sensitive: start capturing public AWS Health events (Q-15) as the first M0 spec. History not captured is lost to the free check.
 - Risks: [PRD §14](../docs/sources/PRD-v0.1.md#14-dependencies-and-risks).
 - Open decision #1 (lead value stream: SLA credits vs. waste) is not decided; see [PRD §1](../docs/sources/PRD-v0.1.md#decisions-this-prd-rests-on).
@@ -45,3 +46,4 @@ Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not p
 - [ADR-011](../docs/adr/ADR-011-no-model-in-v1.md): No language model in v1; agent steps deferred; no model provider chosen. Accepted (delegated).
 - [ADR-012](../docs/adr/ADR-012-hosting-region-us-west-2.md): All Recoup data in us-west-2. Accepted (delegated).
 - [ADR-013](../docs/adr/ADR-013-contingency-on-posted-credits.md): Free check; pilot priced at a contingency share of posted credits only, opening at 20%. Accepted (delegated).
+- [ADR-014](../docs/adr/ADR-014-build-before-interviews.md): Build M0–M1 before interviews; the free check is the discovery instrument; conditional G1; discovery checkpoint before M2. Accepted (product owner).

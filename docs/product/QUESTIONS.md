@@ -51,7 +51,7 @@ Statuses:
 
 ## Still open
 
-**For interviews (KPI-01), needed for G1:** Q-04, Q-06, Q-07, Q-08, plus the spend check in Q-03. Ask each interviewee five extra things these answers depend on:
+**Validated through the free check, not interviews** ([ADR-014](../adr/ADR-014-build-before-interviews.md)): Q-04, Q-07 and Q-08, plus the spend check in Q-03, are recorded at connection or in the report. Q-06 waits for the Next Signal demo. In the conversation offered to each connected prospect, cover:
 1. Their support plan per production account (Q-04).
 2. Who sells them AWS: AWS Inc., AWS India, or a reseller (Q-05, Q-20).
 3. How their accounts are organised (Q-11, Q-19).

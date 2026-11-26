@@ -332,17 +332,18 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | §16 Open questions | QUESTIONS.md Q-01 – Q-09 (decided or accepted) |
 | Revision notes | Not a requirement source |
 
-## Gate G1 check (re-checked 2026-11-27 after the delegated answers)
+## Gate G1 check
 
-| G1 criterion | Result | What fails |
+Re-checked 2026-11-27 under [ADR-014](../adr/ADR-014-build-before-interviews.md): build first; the free check replaces the interviews.
+
+| G1 criterion | Result | Status |
 |---|---|---|
-| Personas, journeys, stories and value hypotheses exist and the client has confirmed them | **Fail** | All exist, and the Stage 1 additions are accepted. But per Q-09, confirmation rests on interview evidence, and KPI-01 is 0 of 10. |
-| Every user-facing Must R-xx traces to a user story and journey | Pass | R-11, R-43 and R-52 now trace to accepted stories (US-15, US-18, US-13). |
-| Every agent step has a target maturity and an approver | Pass | PRD §9; deferred past M2 by ADR-011. |
+| Personas, journeys, stories and value hypotheses exist and the client has confirmed them | **Conditional** | All exist and are accepted as hypotheses. Evidence moves to the free check, and the ADR-014 discovery checkpoint must be met before M2. |
+| Every user-facing Must R-xx traces to a user story and journey | Pass | — |
+| Every agent step has a target maturity and an approver | Pass | Deferred past M2 (ADR-011). |
 | Every PRD section maps to an R-xx or is out of scope | Pass | Coverage table above. |
-| Every Must has acceptance criteria | Pass | Given / When / Then on every Must. |
-| The client has answered the questions or accepted the assumptions | Pass | 31 decided; Q-04, Q-06, Q-07 and Q-08 accepted as assumptions to validate ([QUESTIONS.md](QUESTIONS.md)). |
-| PRD §14: Next Signal demo before G1 (project-specific) | **Fail** | Not done. |
-| Signature (Q-09) | **Pending** | The product owner signs; Claude doesn't. |
-
-G1 now waits only on the 10 interviews, the Next Signal demo and the product owner's signature.
+| Every Must has acceptance criteria | Pass | — |
+| The client has answered the questions or accepted the assumptions | Pass | 31 decided; Q-04, Q-06, Q-07 and Q-08 to be measured through the free check. |
+| PRD §14: Next Signal demo before G1 | **Open** | Recommended before M1 build-out (ADR-014 §5). |
+| PRD revision for ADR-014 (§4 goal 4, §11, §14) | **Open** | Needs the product owner's approval. |
+| Signature (Q-09) | **Pending** | The product owner signs a conditional G1. |
