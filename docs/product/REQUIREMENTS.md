@@ -274,8 +274,8 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 
 | ID | Metric | Target (hypothesis) | Measured by | Type | When |
 |---|---|---|---|---|---|
-| KPI-01 | Interviews completed | 10 in 2 weeks (5 FinOps, 3 SRE/platform, 2 MSP) | Interview log | Discovery | Before G1 |
-| KPI-02 | Share of interviewees with ≥1 claimable incident in 12 months | ≥50% to confirm; kill below 30% (Q-35) | Interview tally | Discovery (kill metric) | Before G1 |
+| KPI-01 | Discovery evidence before M2 | ≥10 account-specific reports and ≥5 follow-up conversations | Report records; conversation log | Discovery | Before M2 (ADR-014) |
+| KPI-02 | Share of connected accounts with ≥1 claimable incident in 12 months | ≥50% to confirm; kill below 30% (Q-35) | Account reports: proven claims in the open window, plus public incidents matched to billed services and regions over 12 months (estimate) | Discovery (kill metric) | Before M2 (ADR-014) |
 | KPI-03 | No-access check → read-only connection | ≥30% | Funnel events (R-35, R-09) | Product | M1 |
 | KPI-04 | Time from connection to report | ≤24 hours | Job timestamps | Product | M1 (NFR-11) |
 | KPI-05 | Claims filed per connected account | ≥1 in the pilot window | Claim records (R-39) | Product | M2 |
@@ -283,7 +283,7 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | KPI-07 | Estimate accuracy | Posted within ±10% of estimate | Reconciliation variance (R-42) | Product | M2 |
 | KPI-08 | SRE time per claim | <30 minutes | Partner self-report | Pilot | M2 |
 | KPI-09 | Paid agreements | ≥1 contingency agreement in the pilot | Contracts | Commercial | M2 |
-| KPI-10 | Expected annual credits per partner | Kill if the median is below $10k (Q-35) | Pilot data | Commercial (kill metric) | M2 |
+| KPI-10 | Expected annual credits per partner | Kill if the median is below $10k (Q-35) | Account-report estimates before M2; pilot data after | Commercial (kill metric) | Before M2, then M2 |
 | **KPI-11** (added, Q-34) | Ready packets filed before their deadline | ≥80%; below it, revisit F-15 | Claim records (R-32, R-39) | Product | M2 |
 
 ## Out of scope
@@ -345,5 +345,5 @@ Re-checked 2026-11-27 under [ADR-014](../adr/ADR-014-build-before-interviews.md)
 | Every Must has acceptance criteria | Pass | — |
 | The client has answered the questions or accepted the assumptions | Pass | 31 decided; Q-04, Q-06, Q-07 and Q-08 to be measured through the free check. |
 | PRD §14: Next Signal demo before G1 | **Open** | Recommended before M1 build-out (ADR-014 §5). |
-| PRD revision for ADR-014 (§4 goal 4, §11, §14) | **Open** | Needs the product owner's approval. |
-| Signature (Q-09) | **Pending** | The product owner signs a conditional G1. |
+| PRD revision for ADR-014 | Done | PRD revision 6, 2026-11-27. |
+| Signature (Q-09) | **Signed, conditional** | Product owner, 2026-11-27. Condition: no M2 until the ADR-014 discovery checkpoint is met. |
