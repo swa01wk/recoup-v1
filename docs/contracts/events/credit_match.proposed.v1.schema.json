@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:credit_match.proposed:1",
+  "title": "credit_match.proposed v1",
+  "description": "Reconciliation proposed a possible credit-line match for P-03 to decide. Requirements: R-43.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "credit_match.proposed"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "claim"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "credit_match_id",
+        "claim_id",
+        "credit_line_id",
+        "failed_criteria"
+      ],
+      "properties": {
+        "credit_match_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "credit_line_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "failed_criteria": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "amount_differs",
+              "product_code_missing",
+              "product_code_other",
+              "refund_type",
+              "multiple_candidates"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:deadline.warning_due:1",
+  "title": "deadline.warning_due v1",
+  "description": "A ready or unproven claim is 14 or 3 days from its earlier deadline. The email consumer sends one message. Requirements: R-45.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "deadline.warning_due"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "claim"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "lead_days",
+        "deadline",
+        "recipient_sub"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "lead_days": {
+          "enum": [
+            14,
+            3
+          ]
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date"
+        },
+        "recipient_sub": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

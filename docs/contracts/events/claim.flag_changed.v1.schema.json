@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:claim.flag_changed:1",
+  "title": "claim.flag_changed v1",
+  "description": "A claim flag changed without a stage change (ready, credit_not_seen, posted_line_changed). Requirements: R-32, R-54.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "claim.flag_changed"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "claim"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "flag",
+        "value",
+        "stage_version"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "flag": {
+          "enum": [
+            "ready",
+            "credit_not_seen",
+            "posted_line_changed"
+          ]
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "stage_version": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

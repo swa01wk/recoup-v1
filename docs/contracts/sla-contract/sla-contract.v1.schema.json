@@ -1,0 +1,653 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:contracts:sla-contract:1",
+  "title": "SLA contract structured file v1",
+  "description": "One file per contract version, next to its snapshot (ADR-005 \u00a71). Every field that comes from the terms cites the snapshot lines it comes from (ADR-005 \u00a73). Anything that needs interpretation is listed under 'interpretations' with its Q-xx.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "service_name",
+    "version",
+    "effective_from",
+    "source",
+    "scope",
+    "matching",
+    "commitment",
+    "measurement",
+    "credit_tiers",
+    "credit_base",
+    "minimum_credit",
+    "rounding",
+    "deadline_rule",
+    "claim_fields",
+    "exclusions",
+    "evidence_formats"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^aws\\.[a-z0-9-]+$"
+    },
+    "service_name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "The page's 'Last Updated' date."
+    },
+    "effective_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "effective_to": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "read_at",
+        "page_last_updated",
+        "snapshot_path",
+        "snapshot_sha256"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "pattern": "^https://aws\\.amazon\\.com/"
+        },
+        "read_at": {
+          "type": "string",
+          "format": "date"
+        },
+        "page_last_updated": {
+          "type": "string",
+          "format": "date"
+        },
+        "snapshot_path": {
+          "type": "string"
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "SHA-256 of the snapshot file. Catalog CI recomputes it and rejects a mismatch or an all-zero value (R-15)."
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "period",
+        "cites"
+      ],
+      "properties": {
+        "level": {
+          "enum": [
+            "region"
+          ]
+        },
+        "period": {
+          "enum": [
+            "monthly_billing_cycle"
+          ]
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        }
+      }
+    },
+    "matching": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health_services",
+        "cur_product_codes"
+      ],
+      "properties": {
+        "health_services": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "AWS Health 'service' codes that match this contract (R-13)."
+        },
+        "cur_product_codes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "CUR 2.0 line_item_product_code values (ADR-022 \u00a71, R-25)."
+        }
+      }
+    },
+    "commitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "monthly_uptime_percent",
+        "cites"
+      ],
+      "properties": {
+        "monthly_uptime_percent": {
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+          "description": "Decimal as a string (NFR-03)."
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "interval_minutes",
+        "aggregation",
+        "empty_interval_value",
+        "error_definition",
+        "cites"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "interval_request_availability",
+            "interval_error_rate"
+          ]
+        },
+        "interval_minutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "aggregation": {
+          "enum": [
+            "mean_of_intervals"
+          ]
+        },
+        "empty_interval_value": {
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+          "description": "Availability (or error rate) of an interval with no requests."
+        },
+        "error_definition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text",
+            "evidence_rule",
+            "cites"
+          ],
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "evidence_rule": {
+              "type": "string",
+              "description": "How an upload format's fields decide 'Error' (docs/contracts/uploads/README.md)."
+            },
+            "cites": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "lines"
+              ],
+              "properties": {
+                "lines": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(-[0-9]+)?$",
+                  "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+                },
+                "quote": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "description": "Optional short quote for reviewers."
+                }
+              }
+            }
+          }
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        }
+      }
+    },
+    "credit_tiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lower_inclusive",
+          "upper_exclusive",
+          "credit_percent",
+          "cites"
+        ],
+        "properties": {
+          "lower_inclusive": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+                "description": "Decimal as a string (NFR-03)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "upper_exclusive": {
+            "type": "string",
+            "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+            "description": "Decimal as a string (NFR-03)."
+          },
+          "credit_percent": {
+            "type": "string",
+            "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+            "description": "Decimal as a string (NFR-03)."
+          },
+          "cites": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lines"
+            ],
+            "properties": {
+              "lines": {
+                "type": "string",
+                "pattern": "^[0-9]+(-[0-9]+)?$",
+                "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+              },
+              "quote": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Optional short quote for reviewers."
+              }
+            }
+          }
+        }
+      }
+    },
+    "credit_base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "cites"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        }
+      }
+    },
+    "minimum_credit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "currency",
+        "rule",
+        "cites"
+      ],
+      "properties": {
+        "amount": {
+          "type": "string",
+          "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+          "description": "Decimal as a string (NFR-03)."
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "rule": {
+          "enum": [
+            "issued_only_if_exceeds",
+            "issued_only_if_at_least"
+          ]
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        }
+      }
+    },
+    "rounding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "places",
+        "mode",
+        "basis"
+      ],
+      "properties": {
+        "places": {
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "ROUND_HALF_EVEN",
+            "ROUND_HALF_UP",
+            "ROUND_DOWN"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "contract",
+            "recoup_default"
+          ]
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        },
+        "question": {
+          "type": "string",
+          "pattern": "^Q-[0-9]+$"
+        }
+      }
+    },
+    "deadline_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "n",
+        "readings",
+        "cites"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "end_of_nth_billing_cycle_after_incident"
+          ]
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "readings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "earlier",
+            "later"
+          ],
+          "properties": {
+            "earlier": {
+              "type": "string"
+            },
+            "later": {
+              "type": "string"
+            }
+          }
+        },
+        "cites": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lines"
+          ],
+          "properties": {
+            "lines": {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$",
+              "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+            },
+            "quote": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional short quote for reviewers."
+            }
+          }
+        }
+      }
+    },
+    "claim_fields": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "source",
+          "cites"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "constant",
+              "claim",
+              "incidents",
+              "evidence_excerpt",
+              "billing"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "description": "Only for source=constant."
+          },
+          "cites": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lines"
+            ],
+            "properties": {
+              "lines": {
+                "type": "string",
+                "pattern": "^[0-9]+(-[0-9]+)?$",
+                "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+              },
+              "quote": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Optional short quote for reviewers."
+              }
+            }
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "text",
+          "evaluation",
+          "cites"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "text": {
+            "type": "string"
+          },
+          "evaluation": {
+            "enum": [
+              "health_event_attribution",
+              "contributor_attestation",
+              "account_status",
+              "not_evaluable"
+            ],
+            "description": "How Recoup rules it out. 'not_evaluable' always yields unproven unless P-02 attests (R-19)."
+          },
+          "cites": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lines"
+            ],
+            "properties": {
+              "lines": {
+                "type": "string",
+                "pattern": "^[0-9]+(-[0-9]+)?$",
+                "description": "Line range in the snapshot file (immutable, so line numbers are stable)."
+              },
+              "quote": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Optional short quote for reviewers."
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence_formats": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+/[0-9]+$"
+      }
+    },
+    "interpretations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question",
+          "text"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "pattern": "^Q-[0-9]+$"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

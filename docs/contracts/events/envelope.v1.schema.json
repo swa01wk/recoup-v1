@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:envelope:1",
+  "title": "Recoup event envelope v1",
+  "description": "Every outbox event (ADR-006 \u00a73). Mirrors PROCESS.md ExecutionEvent. Payloads hold references, hashes and stage names only (ADR-018 \u00a75).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "type",
+    "schema_version",
+    "occurred_at",
+    "tenant_id",
+    "aggregate_type",
+    "aggregate_id",
+    "aggregate_seq",
+    "actor",
+    "correlation_id",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Consumers dedupe on this (at-least-once delivery)."
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z_]+\\.[a-z_]+$"
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenant_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "null only for global events (catalog, public incidents)."
+    },
+    "aggregate_type": {
+      "type": "string"
+    },
+    "aggregate_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "aggregate_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Per-aggregate order; consumers ignore older sequences."
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "user",
+            "operator",
+            "system"
+          ]
+        },
+        "sub": {
+          "type": "string"
+        },
+        "component": {
+          "type": "string"
+        }
+      }
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "causation_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

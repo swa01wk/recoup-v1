@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:uploads:canonical-request-csv:1",
+  "title": "canonical-request-csv/1 \u2014 one row",
+  "description": "Recoup's own CSV format a customer can produce from any log source. Header row required: timestamp,status_code,error_class,resource_id,request_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "timestamp",
+    "status_code",
+    "error_class",
+    "resource_id"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, ISO 8601, e.g. 2026-10-20T07:15:03Z"
+    },
+    "status_code": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599
+    },
+    "error_class": {
+      "enum": [
+        "none",
+        "service_internal",
+        "integration",
+        "client",
+        "throttled",
+        "unknown"
+      ],
+      "description": "service_internal = the AWS service's own error. A 5xx row marked 'unknown' can't be classified, so the claim stays unproven (README, evidence rules)."
+    },
+    "resource_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "For API Gateway: the API ID."
+    },
+    "request_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

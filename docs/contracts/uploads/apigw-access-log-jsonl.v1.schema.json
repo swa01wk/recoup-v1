@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:uploads:apigw-access-log-jsonl:1",
+  "title": "apigw-access-log-jsonl/1 \u2014 one line",
+  "description": "One JSON object per line of an API Gateway access log extract. Field names match the access-log variables a customer configures; extra fields are ignored and never stored (ADR-010 \u00a73).",
+  "type": "object",
+  "required": [
+    "requestTimeEpoch",
+    "status",
+    "apiId"
+  ],
+  "properties": {
+    "requestTimeEpoch": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "$context.requestTimeEpoch (epoch milliseconds)."
+    },
+    "status": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599,
+      "description": "$context.status"
+    },
+    "apiId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "$context.apiId"
+    },
+    "requestId": {
+      "type": "string",
+      "description": "$context.requestId (kept in excerpts)"
+    },
+    "stage": {
+      "type": "string",
+      "description": "$context.stage"
+    },
+    "integrationStatus": {
+      "type": [
+        "string",
+        "integer",
+        "null"
+      ],
+      "description": "$context.integrationStatus. A 5xx here means Lambda, not API Gateway, failed (Q-37)."
+    },
+    "errorResponseType": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "$context.error.responseType (a GatewayResponse type). Required to count any request as an Error (Q-37)."
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:report.completed:1",
+  "title": "report.completed v1",
+  "description": "An account report finished or failed. Drives KPI-04 timing and the KPI-02/KPI-10 discovery read. Requirements: NFR-11, R-55.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "report.completed"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "report"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "connection_id",
+        "status",
+        "requested_at",
+        "completed_at",
+        "claim_ids"
+      ],
+      "properties": {
+        "report_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "connection_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "failed"
+          ]
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "billing_basis": {
+          "enum": [
+            "cost_explorer",
+            "cur2"
+          ]
+        },
+        "claim_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "failure_class": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

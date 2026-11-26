@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:evidence.processed:1",
+  "title": "evidence.processed v1",
+  "description": "An uploaded evidence file was parsed or rejected. Requirements: R-52.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "evidence.processed"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "evidence_upload"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upload_id",
+        "claim_id",
+        "format_id",
+        "outcome",
+        "sha256"
+      ],
+      "properties": {
+        "upload_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "format_id": {
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "parsed",
+            "rejected"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "rejection_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

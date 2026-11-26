@@ -1,0 +1,22 @@
+{
+  "event_id": "7d4e2b10-3c1a-4f5e-8a9b-0c1d2e3f4a5b",
+  "type": "sla_review.opened",
+  "schema_version": 1,
+  "occurred_at": "2026-11-27T10:00:00Z",
+  "tenant_id": null,
+  "aggregate_type": "sla_contract",
+  "aggregate_id": "9a9a9a9a-0000-4000-8000-000000000001",
+  "aggregate_seq": 2,
+  "actor": {
+    "type": "system",
+    "component": "catalog"
+  },
+  "correlation_id": "trace-123",
+  "causation_id": null,
+  "payload": {
+    "review_id": "9a9a9a9a-0000-4000-8000-000000000001",
+    "contract_id": "aws.api-gateway",
+    "latest_version_id": "9a9a9a9a-0000-4000-8000-000000000002",
+    "fetched_text_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
