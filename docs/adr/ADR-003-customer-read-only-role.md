@@ -25,4 +25,4 @@ AWS guidance (IAM User Guide, read 2026-11-27): the vendor generates a unique Ex
 - Easier: a short, auditable permission list for security review; access is revocable by the customer at any time.
 - Harder: Recoup must store an ExternalId per connection with tenant isolation (PRD §12), and must ship and version the template.
 - We must now: write the permission list and the ExternalId handling in `SECURITY.md` (Stage 2); add a contract test that the template has no write action and no default ExternalId; port only the read-only pattern.
-- Open: which billing-data source (CUR or Data Exports) and how its S3 bucket is read is decided in Stage 2.
+- Billing-data source: decided in [ADR-009](ADR-009-billing-data-cur2-with-cost-explorer-bootstrap.md) (read the customer's CUR 2.0 export bucket, plus `ce:GetCostAndUsage` for the first estimate). Filing claims: [ADR-007](ADR-007-customer-files-claims-in-v1.md) (no `support:CreateCase`).

@@ -8,7 +8,7 @@ Status: Accepted    Date: 2026-11-27
 2. **Audit records are written in the same transaction as the state change they describe.** If either fails, both fail.
 3. **External effects go through a transactional outbox** (notifications today; any future write). Consumers handle at-least-once delivery and dedupe by event ID.
 4. **No fallback store, in any environment.** If the database is unavailable, the operation fails and the error is shown. Local development and tests use a real PostgreSQL in a container (PROCESS.md testing model), never an in-memory substitute.
-5. **Not decided here:** where PostgreSQL is hosted, and backups and recovery targets. Hosting is a cloud choice made with the product owner in Stage 2; recovery targets come from the NFRs.
+5. **Hosting** is decided in [ADR-008](ADR-008-postgresql-on-amazon-rds.md) (Amazon RDS for PostgreSQL). Recovery targets come from the NFRs.
 
 **Alternatives:**
 - *Keep DynamoDB.* Rejected: the project constraint is PostgreSQL, claims need transactional updates across claim, approval and audit, and nothing in the PRD needs DynamoDB's scale.

@@ -27,3 +27,6 @@ Current milestone: Stage 1 (Requirements intake) | Next gate: G1 on TBD
 - [ADR-004](../docs/adr/ADR-004-claim-state-from-system-of-record.md): Claim stages move only on system-of-record evidence; nothing simulated. Accepted.
 - [ADR-005](../docs/adr/ADR-005-sla-catalog-pinned-snapshots.md): SLA contracts as pinned, hashed snapshots; per-contract calculation. Accepted.
 - [ADR-006](../docs/adr/ADR-006-durable-state-no-fallback.md): PostgreSQL and outbox for all state and audit; no fallback. Accepted.
+- [ADR-007](../docs/adr/ADR-007-customer-files-claims-in-v1.md): The customer files claims in Support Center; Recoup prepares the packet and holds no filing permission. Accepted (delegated).
+- [ADR-008](../docs/adr/ADR-008-postgresql-on-amazon-rds.md): PostgreSQL on Amazon RDS in Recoup's account; Multi-AZ in production from M2. Accepted (delegated).
+- [ADR-009](../docs/adr/ADR-009-billing-data-cur2-with-cost-explorer-bootstrap.md): CUR 2.0 is the billing system of record; Cost Explorer only for the first estimate. Accepted (delegated).

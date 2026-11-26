@@ -18,7 +18,7 @@ Status: Accepted    Date: 2026-11-27
    Only *posted* is verified money. Every earlier amount stays labelled *estimate* or by its stage.
 3. **No simulated values in product code.** No placeholder case IDs, statuses or amounts, and no demo or replay mode in the product. Fakes live only in tests and can't reach product state. The hackathon's replay and demo paths are not ported ([ADR-002](ADR-002-new-repo-via-process.md)).
 4. **Fail closed.** A step that can't complete returns a typed failure, and the claim stays at its last confirmed stage.
-5. **Who files is not decided here.** That is open question 1 (PRD §16), with the assumption that the customer files in v1. This ADR holds either way: if the customer files, the case ID is customer-entered and labelled so; if Recoup ever files, the case ID comes from the AWS Support API response.
+5. **Who files** is decided in [ADR-007](ADR-007-customer-files-claims-in-v1.md): the customer, in v1. The case ID is customer-entered and labelled so. If Recoup ever files, the case ID would come from the AWS Support API response. *Posted* is matched against CUR 2.0 ([ADR-009](ADR-009-billing-data-cur2-with-cost-explorer-bootstrap.md)).
 
 **Alternatives:**
 - *Keep a demo mode with simulated stages for sales.* Rejected: the hackathon shows how demo states leak into the product. If a demo is needed, it runs against a real test account.
@@ -27,4 +27,4 @@ Status: Accepted    Date: 2026-11-27
 **Consequences:**
 - Easier: every number on screen can be traced to its evidence, which is what M-01 (invoicing against reconciliation) needs.
 - Harder: the UI has to show waiting states honestly (for example "submitted, waiting for AWS"); M2 can't show a success until a credit actually posts.
-- We must now: model the stages as a state machine with guards in Stage 2; add M0 tests that no product path can produce a stage without its evidence; record who-files as a Q-xx in Stage 1.
+- We must now: model the stages as a state machine with guards in Stage 2; add M0 tests that no product path can produce a stage without its evidence; record PRD §16 question 1 as resolved by ADR-007 in Stage 1.
