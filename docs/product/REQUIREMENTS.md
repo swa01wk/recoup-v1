@@ -1,11 +1,11 @@
 # REQUIREMENTS: Recoup v1
 
 Status: Draft for Gate G1 · Date: 2026-11-27 · Source: [PRD v0.1](../sources/PRD-v0.1.md) (revision 4)
-Questions and assumptions: [QUESTIONS.md](QUESTIONS.md). Decisions: [ADR-001](../adr/ADR-001-free-check-first.md) to [ADR-009](../adr/ADR-009-billing-data-cur2-with-cost-explorer-bootstrap.md).
+Questions and assumptions: [QUESTIONS.md](QUESTIONS.md). Decisions: [ADR-001](../adr/ADR-001-free-check-first.md) to [ADR-013](../adr/ADR-013-contingency-on-posted-credits.md). Questions decided 2026-11-27 under delegation from the product owner.
 
 > **Everything about customers here is a hypothesis.** No prospective customer has been interviewed (KPI-01: 0 of 10). Personas, journeys, stories, KPIs and value claims stay hypotheses until interview evidence passes G1. Requirements built on them are what we would build *if* the hypotheses hold.
 
-**How to read this doc.** The PRD owns the personas, journeys, stories, agent steps and value hypotheses; this doc links to them, records whether each is confirmed, and proposes what is missing. This doc owns the R-xx, NFR-xx and KPI-xx. The ADRs own the decisions; requirements link to them instead of restating them. A proposed item (marked *proposed*) is not a requirement until the product owner accepts its Q-xx.
+**How to read this doc.** The PRD owns the personas, journeys, stories, agent steps and value hypotheses; this doc links to them, records whether each is confirmed, and adds what was missing. This doc owns the R-xx, NFR-xx and KPI-xx. The ADRs own the decisions; requirements link to them instead of restating them. Items added in Stage 1 (P-06, J-07 – J-09, US-13 – US-18, V-03, V-04, KPI-11) were accepted on 2026-11-27 (delegated); like the PRD's own items, they stay hypotheses until interviews.
 
 ---
 
@@ -24,25 +24,25 @@ Questions and assumptions: [QUESTIONS.md](QUESTIONS.md). Decisions: [ADR-001](..
 | ID | Status | Notes |
 |---|---|---|
 | P-01 FinOps lead (buyer) | Hypothesis, unconfirmed | Approver for claims (US-07) and two agent steps (PRD §9). |
-| P-02 SRE / platform incident lead | Hypothesis, unconfirmed | No journey shows how P-02 hands Recoup the logs that J-03 needs. Proposed J-08 / US-13 (Q-13). |
-| P-03 Cloud finance analyst | Hypothesis, unconfirmed | Gets a decision role in proposed US-18 (confirm an ambiguous credit-line match, Q-12). |
-| P-04 Security reviewer | Hypothesis, unconfirmed | Proposed V-04 tests their acceptance (Q-07). |
+| P-02 SRE / platform incident lead | Hypothesis, unconfirmed | Hands Recoup log extracts by upload: J-08 / US-13 ([ADR-010](../adr/ADR-010-customer-evidence-by-upload.md)). |
+| P-03 Cloud finance analyst | Hypothesis, unconfirmed | Confirms ambiguous credit-line matches (US-18, Q-12). |
+| P-04 Security reviewer | Hypothesis, unconfirmed | V-04 tests their acceptance (Q-07). |
 | P-05 MSP account manager | Hypothesis, unconfirmed; **no v1 journey or requirement** | Kept only for M-03. v1 doesn't support resellers (A-05). |
-| **P-06 Recoup operator** (internal) — *proposed* | Proposed, Q-32 | Someone at Recoup has to review SLA snapshots and recheck diffs ([ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) §3, §5) and curate public incidents (A-15). No PRD persona does this. |
+| **P-06 Recoup operator** (internal) | Accepted (Q-32); the product owner acts as P-06 in v1 | Someone at Recoup has to review SLA snapshots and recheck diffs ([ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) §3, §5) and curate public incidents (A-15). No PRD persona does this. |
 
 ### User journeys ([PRD §6](../sources/PRD-v0.1.md#6-user-journeys))
 
 | ID | Release | Status | Gap or challenge |
 |---|---|---|---|
-| J-01 No-access credit check | M1 | Hypothesis | Where the public incident history comes from is undecided (Q-15). What contact data the "book an interview" step collects is undecided (Q-31). |
+| J-01 No-access credit check | M1 | Hypothesis | Public incidents come from Recoup's own Health capture (Q-15). The check is anonymous; booking uses an external link (Q-31). |
 | J-02 Connect read-only | M1 | Hypothesis | The connection test must also report the support-plan branch (Health API unavailable). |
-| J-03 Account-specific check | M1 | Hypothesis | "Using the customer's logs" has no mechanism: the ADR-003 role reads only billing data and Health (Q-13). Health keeps events ~90 days, about the length of the claim window (Q-16). "One ready-to-file claim" needs a rule (Q-24). |
-| J-04 Approve and file | M2 | Hypothesis | Who may approve needs a user and role model (Q-18). |
-| J-05 Track and reconcile | M2 | Hypothesis | The claim-to-Credit-line matching rule is undefined (Q-12). |
-| J-06 Deadline radar | M2 (Should) | Hypothesis | Lead time N and channel undecided (Q-22, Q-23). The deadline rule itself has two readings (Q-14). |
-| **J-07 Disconnect and delete** — *proposed* | M1 | Proposed, Q-27 | Trigger: the customer deletes the stack or asks to leave. Steps: Recoup detects the failed assume-role ([ADR-003](../adr/ADR-003-customer-read-only-role.md) §7) → stops reads → deletes or keeps data per the retention rule. Outcome: no further access, data handled as promised. |
-| **J-08 Supply evidence** — *proposed* | M1 | Proposed, Q-13 | Trigger: a matched incident needs request logs. Steps: P-02 gets a request for the incident window → supplies log extracts (and optionally a postmortem) → Recoup computes availability and redacts. Outcome: eligibility proven or stays *unproven*. |
-| **J-09 SLA terms change review** — *proposed* | M1 | Proposed, Q-32 | Trigger: the scheduled recheck finds a difference ([ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) §5). Steps: P-06 reviews the diff → publishes a new version or dismisses. Outcome: the catalog is current; old claims stay reproducible. |
+| J-03 Account-specific check | M1 | Hypothesis | Logs arrive by upload ([ADR-010](../adr/ADR-010-customer-evidence-by-upload.md), J-08). Health keeps events ~90 days, so Recoup stores every event it reads (Q-16). One free packet per report (Q-24, R-55). |
+| J-04 Approve and file | M2 | Hypothesis | Only the approver role approves (Q-18, R-38, R-56). |
+| J-05 Track and reconcile | M2 | Hypothesis | Matching rule set in Q-12; card refunds kept apart (R-54). |
+| J-06 Deadline radar | M2 (Should) | Hypothesis | Email warnings at 14 and 3 days, using the earlier deadline reading (Q-14, Q-22, Q-23). |
+| **J-07 Disconnect and delete** | M1 | Accepted (Q-27), hypothesis | Trigger: the customer deletes the stack or asks to leave. Steps: Recoup detects the failed assume-role ([ADR-003](../adr/ADR-003-customer-read-only-role.md) §7) → stops reads → deletes or keeps data per the retention rule. Outcome: no further access, data handled as promised. |
+| **J-08 Supply evidence** | M1 | Accepted (Q-13), hypothesis | Trigger: a matched incident needs request logs. Steps: P-02 gets a request for the incident window → supplies log extracts (and optionally a postmortem) → Recoup computes availability and redacts. Outcome: eligibility proven or stays *unproven*. |
+| **J-09 SLA terms change review** | M1 | Accepted (Q-32), hypothesis | Trigger: the scheduled recheck finds a difference ([ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) §5). Steps: P-06 reviews the diff → publishes a new version or dismisses. Outcome: the catalog is current; old claims stay reproducible. |
 
 PRD §6 branches are carried into requirements: below-paid-plan fallback → R-14; logs unavailable → R-20; under the minimum credit → R-21; single-AZ against a region-level SLA → R-22.
 
@@ -50,7 +50,7 @@ PRD §6 branches are carried into requirements: below-paid-plan fallback → R-1
 
 US-01 to US-12 are taken as written (all hypotheses, unconfirmed). Notes: US-05's "$1 floor" is the contract's own minimum credit ([ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) §6), so R-21 states it per contract; US-11's N is Q-22.
 
-*Proposed* stories (each needs its Q-xx accepted):
+Stories added in Stage 1 (accepted 2026-11-27, still hypotheses):
 
 | ID | Story | Journey | Release | Acceptance (summary) | Q |
 |---|---|---|---|---|---|
@@ -67,11 +67,11 @@ All three agent steps have a target maturity (L3) and a named approver, as G1 re
 
 | Journey step | Target | Approver | Requirement | Note |
 |---|---|---|---|---|
-| J-03 incident windows from postmortems or free text | L3 | P-02 | R-49 | Recommended out of M1 (A-21). Health event times plus customer-entered windows cover M1. |
-| J-03 claim narrative | L3 | P-01 | R-50 | Recommended out of M1 (A-21). A deterministic per-contract template meets R-28. |
-| J-05 denial reason capture | L3 | P-01 | R-51 | M2. A pick-list plus pasted case text works without a model. |
+| J-03 incident windows from postmortems or free text | L3 | P-02 | R-49 | Deferred past M2 ([ADR-011](../adr/ADR-011-no-model-in-v1.md)). Health event times plus windows P-02 enters cover v1. |
+| J-03 claim narrative | L3 | P-01 | R-50 | Deferred past M2 (ADR-011). A per-contract template meets R-28. |
+| J-05 denial reason capture | L3 | P-01 | R-51 | Deferred past M2 (ADR-011). A fixed list plus pasted case text covers v1. |
 
-Using any model needs a model-provider decision (product owner, Q-21) before Stage 2.
+No model and no model provider in v1 ([ADR-011](../adr/ADR-011-no-model-in-v1.md)). The L3 targets stand for when a model is added.
 
 ### Value and defensibility ([PRD §10](../sources/PRD-v0.1.md#10-value-and-defensibility-hypotheses-in-the-order-theyd-be-earned))
 
@@ -79,11 +79,11 @@ Using any model needs a model-provider decision (product owner, Q-21) before Sta
 |---|---|---|
 | V-01 | Hypothesis, unproven | The kill test for the whole product. Nothing in M1 build-out should start before KPI-02 is read (PRD §14). |
 | V-02 | Hypothesis, unproven | "Above partners' past experience" may have no baseline: if V-01 is true, most partners never filed (Q-26). |
-| M-01 | Hypothesis, unproven | Depends on a matching rule we can't define until we see a real SLA Credit line (Q-12), and on pricing (Q-02). |
+| M-01 | Hypothesis, unproven | Depends on the Q-12 matching rule holding against a real SLA Credit line, and on contingency pricing ([ADR-013](../adr/ADR-013-contingency-on-posted-credits.md)). |
 | M-02 | Hypothesis, unproven | Not earnable at pilot scale (tens of claims). Threshold deferred (Q-25). |
 | M-03 | Hypothesis, unproven | Blocked by reseller entitlement (Q-05). No v1 work. |
-| **V-03** — *proposed* | Proposed, Q-33 | "A ready-to-file packet cuts claim effort enough that P-02 spends under 30 minutes per claim." Proof: KPI-08 in the pilot. PRD has the KPI and the persona goal but no hypothesis. |
-| **V-04** — *proposed* | Proposed, Q-07 | "Security reviewers approve a short, read-only, customer-deployed role from an early-stage vendor." Proof: KPI-03 ≥30% and no access request rejected for scope. |
+| **V-03** | Accepted (Q-33), hypothesis | "A ready-to-file packet cuts claim effort enough that P-02 spends under 30 minutes per claim." Proof: KPI-08 in the pilot. PRD has the KPI and the persona goal but no hypothesis. |
+| **V-04** | Accepted (Q-07), hypothesis | "Security reviewers approve a short, read-only, customer-deployed role from an early-stage vendor." Proof: KPI-03 ≥30% and no access request rejected for scope. |
 
 Competitive gaps (reconciliation, contract-version evidence) are unverified until a Next Signal demo (PRD §10, §14).
 
@@ -101,16 +101,16 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 | F-03 SLA contract catalog | M1 | Must | R-15 – R-17 |
 | F-04 Eligibility and credit calculation | M1 | Must | R-18 – R-24 |
 | F-05 Billed charges from billing data | M1 | Must | R-25 – R-27 |
-| F-06 Claim packet with deadline | M1 | Must | R-28 – R-32 |
+| F-06 Claim packet with deadline | M1 | Must | R-28 – R-32, R-55 |
 | F-07 No-access estimator | M1 | Must | R-33 – R-35 |
-| F-08 Bound approval | M2 | Must | R-36 – R-38 |
+| F-08 Bound approval | M2 | Must | R-36 – R-38, R-56 |
 | F-09 Case tracking | M2 | Must | R-39 – R-41 |
-| F-10 Credit reconciliation | M2 | Must | R-42 – R-44 |
+| F-10 Credit reconciliation | M2 | Must | R-42 – R-44, R-54 |
 | F-11 Deadline radar | M2 | Should | R-45 – R-46 |
 | F-12 Per-claim evidence trail | M2 | Should | R-47 |
 | F-13 SLA credit ledger | M2 | Must | R-48 |
-| Agent steps (PRD §9) | M1/M2 per Q-21 | Could | R-49 – R-51 |
-| Evidence supply and data lifecycle (proposed J-07, J-08) | M1 | Must / Should | R-52 – R-53 |
+| Agent steps (PRD §9) | After M2 (ADR-011) | Could | R-49 – R-51 |
+| Evidence supply and data lifecycle (J-07, J-08) | M1 | Must / Should | R-52 – R-53 |
 | F-14, F-15, F-16 | Later / Won't | — | Out of scope (below) |
 
 ## Functional requirements (R-xx)
@@ -136,7 +136,7 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 | R-08 | The template grants no write action and includes a deny-all-writes statement. | §4, §12 | US-02 / J-02 | Must | **Given** any template version, **when** the contract test parses it, **then** it finds no write action in any allow statement and finds the deny statement. | ADR-003 §4–5 |
 | R-09 | A connection test assumes the role with the ExternalId, checks each permission the check needs (CUR export read, Health, Cost Explorer), and reports each pass or fail, including "Health API not available on this support plan". | §6 J-02, §12 | US-02 / J-02 | Must | **Given** a deployed role on an account without a qualifying plan, **when** the test runs, **then** CUR and Cost Explorer pass, Health shows the plan reason, and the check offers the fallback (R-14). | ADR-003 §6, NFR-10 |
 | R-10 | Before connecting, the customer sees how many Cost Explorer calls the first report will make and what they cost. | §8 F-05, §6 J-02 | US-02 / J-02 | Must | **Given** chosen services, regions and the claim window, **when** the connect step loads, **then** it shows the expected call count and cost, billed to the customer's account. | ADR-009 §3–4 |
-| R-11 | A failed assume-role marks the connection *disconnected*; Recoup stops retrying on a backoff limit and tells the tenant. | §12 | US-15 (*proposed*) / J-07 | Must | **Given** the customer deleted the stack, **when** the next read fails with access denied, **then** the account shows *disconnected* and no read is retried after the limit. | ADR-003 §7 |
+| R-11 | A failed assume-role marks the connection *disconnected*; Recoup stops retrying on a backoff limit and tells the tenant. | §12 | US-15 / J-07 | Must | **Given** the customer deleted the stack, **when** the next read fails with access denied, **then** the account shows *disconnected* and no read is retried after the limit. | ADR-003 §7 |
 
 ### F-02 Incident detection and account matching (M1)
 
@@ -144,7 +144,7 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 |---|---|---|---|---|---|---|
 | R-12 | For each connected account, Recoup reads account-specific and public AWS Health events covering the open claim window and stores each event it reads with its ARN and read time. | §8 F-02, §6 J-03 | US-03 / J-03 | Must | **Given** an account with a qualifying plan, **when** the check runs, **then** every Health event in the window is stored and cited by ARN. | Q-15, Q-16 |
 | R-13 | Incidents are matched to the account's billed services and regions; each match cites the Health event and the billed service and region it matched. | §8 F-02 | US-03 / J-03 | Must | **Given** a Health event for a service the account has no charges for, **when** matching runs, **then** it isn't shown as affecting the account. | — |
-| R-14 | Where the Health API isn't available, the customer can enter the incidents that hit them; these are labelled *customer-supplied* and matched like Health events. | §6 branches, §12 | US-14 (*proposed*) / J-03 | Should | **Given** a Basic-plan account, **when** the customer enters an incident, **then** it is matched and labelled *customer-supplied* everywhere it appears. | Q-17, NFR-10 |
+| R-14 | Where the Health API isn't available, the customer can enter the incidents that hit them; these are labelled *customer-supplied* and matched like Health events. | §6 branches, §12 | US-14 / J-03 | Should | **Given** a Basic-plan account, **when** the customer enters an incident, **then** it is matched and labelled *customer-supplied* everywhere it appears. | Q-17, NFR-10 |
 
 ### F-03 SLA contract catalog (M1)
 
@@ -152,7 +152,7 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 |---|---|---|---|---|---|---|
 | R-15 | Each contract version is a pinned snapshot plus a structured file whose source hash is verified in CI, and the version used is chosen by incident date. | §8 F-03, §12 | US-04 / J-03 | Must | **Given** a snapshot whose SHA-256 differs from its recorded hash, or a placeholder hash, **when** CI runs, **then** the build fails. | [ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) §1–4 |
 | R-16 | The catalog holds 3–5 contracts at M1 exit, chosen per Q-03. | §8 F-03 | US-04 / J-03 | Must | **Given** M1 exit, **when** the catalog is listed, **then** it holds 3–5 contracts, each with golden tests from the published examples. | Q-03, ADR-005 |
-| R-17 | A scheduled recheck compares each published SLA with its latest snapshot and opens a review on a difference; it never edits a contract. | §14 | US-16 (*proposed*) / J-09 | Should | **Given** a changed SLA page, **when** the recheck runs, **then** a review is opened and no contract changes until P-06 publishes a new version. | ADR-005 §5, Q-32 |
+| R-17 | A scheduled recheck compares each published SLA with its latest snapshot and opens a review on a difference; it never edits a contract. | §14 | US-16 / J-09 | Should | **Given** a changed SLA page, **when** the recheck runs, **then** a review is opened and no contract changes until P-06 publishes a new version. | ADR-005 §5, Q-32 |
 
 ### F-04 Eligibility and credit calculation (M1)
 
@@ -180,16 +180,17 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 |---|---|---|---|---|---|---|
 | R-28 | A packet contains every field the contract snapshot requires (for API Gateway: subject "SLA Credit Request", incident dates, times and regions, API IDs, billing cycle, request logs). | §8 F-06 | US-06 / J-03 | Must | **Given** a contract's required-fields list, **when** a packet is built, **then** each field is filled or the packet is not ready, naming what's missing. | ADR-005 §1, ADR-007 §1 |
 | R-29 | Log excerpts have sensitive data removed before they enter a packet, and P-02 sees what was removed before the packet is final. | §12 data handling | US-06 / J-03 | Must | **Given** a log line with an email address and IP, **when** the excerpt is built, **then** both are redacted and the redaction is listed for review. | NFR-05 |
-| R-30 | Each packet shows its filing deadline, computed from the contract's deadline rule. | §8 F-06 | US-06 / J-03 | Must | **Given** an incident date and contract, **when** the packet is built, **then** the deadline shown follows the rule recorded in the contract (reading per Q-14). | Q-14 |
+| R-30 | Each packet shows its filing deadline, computed from the contract's deadline rule. | §8 F-06 | US-06 / J-03 | Must | **Given** an incident date and contract, **when** the packet is built, **then** the deadline shown is the earlier reading of the contract's rule, and a claim between the two readings shows "may have expired — check with AWS". | Q-14 |
 | R-31 | Filing aids: copy subject and body, download excerpts as an attachment, and open the Support Center create-case page. | §8 F-06 | US-06 / J-04 | Should | **Given** a ready packet, **when** P-02 files, **then** all three actions work without retyping. | ADR-007 §3 |
-| R-32 | A claim is marked *ready* only if it is eligible (not unproven), above the minimum, before its deadline and its packet is complete. | §6, §8 F-06 | US-06 / J-03 | Must | **Given** an eligible claim past its deadline, **when** the report is built, **then** it is shown as expired, not ready. | Q-24 |
+| R-32 | A claim is marked *ready* only if it is eligible (not unproven), above the minimum, before its deadline and its packet is complete. | §6, §8 F-06 | US-06 / J-03 | Must | **Given** an eligible claim past its deadline, **when** the report is built, **then** it is shown as expired, not ready. | — |
+| R-55 | The free account report lists every claimable credit with its estimate, deadline and stage, and builds one complete packet: the ready claim with the largest estimate. Packets for every ready claim are built for tenants with a pilot agreement. | §6 J-03, §4 goal 2 | US-06 / J-03 | Must | **Given** a free report with three ready claims, **when** it is built, **then** all three are listed with deadlines and only the largest has a packet; **and given** a pilot tenant, **then** all three have packets. | Q-24, ADR-001, ADR-013 |
 
 ### F-07 No-access estimator (M1)
 
 | ID | Requirement | PRD § | Story | Priority | Acceptance | Links |
 |---|---|---|---|---|---|---|
 | R-33 | A prospect enters regions, services and rough monthly spend without AWS access. | §6 J-01, §4 goal 1 | US-01 / J-01 | Must | **Given** a visitor with no account connected, **when** they submit regions, services and spend, **then** results appear without any AWS permission. | Q-31 |
-| R-34 | Results list public incidents in the open claim window that may qualify, each with its deadline and a dollar range labelled *estimate*, and the assumptions behind the range. | §6 J-01 | US-01 / J-01 | Must | **Given** a public incident in us-east-1 for a chosen service, **when** results show, **then** it appears with deadline, range, the label *estimate* and the spend assumption used. | Q-15 |
+| R-34 | Results list public incidents in the open claim window that may qualify, taken from Recoup's own record of public AWS Health events, each with its deadline and a dollar range labelled *estimate*, and the assumptions behind the range. | §6 J-01 | US-01 / J-01 | Must | **Given** a public incident in us-east-1 for a chosen service, **when** results show, **then** it appears with its source event, deadline, range, the label *estimate* and the spend assumption used. | Q-15 |
 | R-35 | Results offer two next steps: book an interview, or connect an account. Each choice is recorded as a funnel event. | §6 J-01, §11 KPI-03 | US-01 / J-01 | Must | **Given** results, **when** the visitor picks either action, **then** a funnel event is recorded for KPI-03. | Q-31 |
 
 ### F-08 Bound approval (M2)
@@ -199,6 +200,7 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 | R-36 | An approval binds the approver, the claim content hash, the amount, the claim state version, the policy revision and an expiry; any change to these invalidates it. | §8 F-08 | US-07 / J-04 | Must | **Given** an approved claim, **when** one log excerpt changes, **then** the approval is invalid and re-approval is required. | ADR-002 (approval port) |
 | R-37 | An approver can decline (with a reason) or revoke an approval before the claim is submitted. | §8 F-08 | US-07 / J-04 | Must | **Given** an approved, unsubmitted claim, **when** the approver revokes, **then** it returns to *eligible* and the revocation is audited. | — |
 | R-38 | Only a user holding the approver role for that tenant can approve. | §8 F-08 | US-07 / J-04 | Must | **Given** a contributor, **when** they try to approve, **then** the request is denied and audited. | Q-18 |
+| R-56 | Each tenant has named users who sign in individually with MFA and hold one role: approver, contributor or viewer. Every action is attributed to the user who took it. | §8 F-08, §12 audit | US-07 / J-04 | Must | **Given** a viewer, **when** they try to enter a case ID, **then** it is denied; **and given** any state change, **then** its audit record names the user. | Q-18 |
 
 ### F-09 Case tracking (M2)
 
@@ -213,14 +215,15 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 | ID | Requirement | PRD § | Story | Priority | Acceptance | Links |
 |---|---|---|---|---|---|---|
 | R-42 | A granted claim becomes *posted (verified)* only when a CUR 2.0 Credit line matches it under the matching rule; the variance from the estimate is recorded. | §8 F-10 | US-09 / J-05 | Must | **Given** a granted claim and a matching Credit line, **when** reconciliation runs, **then** the claim is *posted* with the line's ID and the variance. | ADR-004, ADR-009 §2, Q-12 |
-| R-43 | A possible but ambiguous match is shown to P-03 to confirm or reject; the claim stays *granted* until confirmed. | §8 F-10 | US-18 (*proposed*) / J-05 | Must | **Given** two candidate Credit lines, **when** reconciliation runs, **then** neither is applied automatically and P-03 is asked. | Q-12 |
+| R-43 | A possible but ambiguous match is shown to P-03 to confirm or reject; the claim stays *granted* until confirmed. | §8 F-10 | US-18 / J-05 | Must | **Given** two candidate Credit lines, **when** reconciliation runs, **then** neither is applied automatically and P-03 is asked. | Q-12 |
 | R-44 | Reconciliation re-reads finalized months, because AWS may add a credit to a month after it closes. | §8 F-10 | US-09 / J-05 | Must | **Given** a credit added to a finalized month, **when** the next refresh lands, **then** reconciliation finds it. | ADR-009 (AWS fact) |
+| R-54 | A granted claim with no Credit line after its matching window is flagged *credit not seen*. If the customer reports a refund outside the bill (for example to a card), it is recorded as *refunded outside the bill (customer-entered)*, never as *posted (verified)*, and never counted in the posted total. | §8 F-10, §12 money labelling | US-09 / J-05 | Must | **Given** a granted claim and a customer-entered card refund, **when** the ledger opens, **then** the amount sits under *refunded outside the bill* and the posted total excludes it. | Q-12, ADR-013 §3 |
 
 ### F-11 Deadline radar (M2, Should)
 
 | ID | Requirement | PRD § | Story | Priority | Acceptance | Links |
 |---|---|---|---|---|---|---|
-| R-45 | The claim owner is warned N days before each ready or unproven claim's deadline. | §8 F-11 | US-11 / J-06 | Should | **Given** N per Q-22 and a claim due in N days, **when** the daily job runs, **then** one warning goes to the owner through the outbox. | Q-22, Q-23, ADR-006 §3 |
+| R-45 | The claim owner is emailed 14 days and 3 days before each ready or unproven claim's deadline. | §8 F-11 | US-11 / J-06 | Should | **Given** a claim due in 14 days, **when** the daily job runs, **then** exactly one email goes to the owner through the outbox, and again at 3 days. | Q-22, Q-23, ADR-006 §3 |
 | R-46 | At each new billing cycle, claimable incidents nearing their deadline are listed for the tenant. | §6 J-06 | US-11 / J-06 | Should | **Given** a new cycle, **when** the job runs, **then** the list shows each claim with days left. | — |
 
 ### F-12, F-13 Evidence trail and ledger (M2)
@@ -234,16 +237,16 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 
 | ID | Requirement | PRD § | Story | Priority | Acceptance | Links |
 |---|---|---|---|---|---|---|
-| R-49 | An agent proposes incident windows and affected resources from postmortems or free-text notes, with sources; P-02 confirms before eligibility uses them. | §9 | US-04 / J-03 | Could | **Given** a postmortem, **when** the agent proposes a window, **then** nothing uses it until P-02 confirms, and each proposed value cites its source text. | Q-21, NFR-09 |
-| R-50 | An agent drafts the claim narrative from verified facts only; P-01 reviews it before approval. | §9 | US-06 / J-03 | Could | **Given** a draft with a fact not in the claim record, **when** validation runs, **then** the draft is rejected. | Q-21 |
-| R-51 | An agent proposes a structured denial reason from pasted AWS case text; P-01 confirms the classification. | §9 | US-10 / J-05 | Could | **Given** case text containing instructions, **when** the agent runs, **then** they are treated as data and only a reason from the fixed list is proposed. | Q-21, NFR-09 |
+| R-49 | An agent proposes incident windows and affected resources from postmortems or free-text notes, with sources; P-02 confirms before eligibility uses them. | §9 | US-04 / J-03 | Could | **Given** a postmortem, **when** the agent proposes a window, **then** nothing uses it until P-02 confirms, and each proposed value cites its source text. | ADR-011, NFR-09 |
+| R-50 | An agent drafts the claim narrative from verified facts only; P-01 reviews it before approval. | §9 | US-06 / J-03 | Could | **Given** a draft with a fact not in the claim record, **when** validation runs, **then** the draft is rejected. | ADR-011 |
+| R-51 | An agent proposes a structured denial reason from pasted AWS case text; P-01 confirms the classification. | §9 | US-10 / J-05 | Could | **Given** case text containing instructions, **when** the agent runs, **then** they are treated as data and only a reason from the fixed list is proposed. | ADR-011, NFR-09 |
 
-### Evidence supply and data lifecycle (*proposed* J-07, J-08)
+### Evidence supply and data lifecycle (J-07, J-08)
 
 | ID | Requirement | PRD § | Story | Priority | Acceptance | Links |
 |---|---|---|---|---|---|---|
-| R-52 | P-02 can supply request-log evidence for an incident window in the formats each contract lists; Recoup computes availability from it and keeps only redacted excerpts and hashes. | §6 J-03, §5 P-02, §12 | US-13 (*proposed*) / J-08 | Must | **Given** an API Gateway access-log extract for the window, **when** uploaded, **then** per-interval availability is computed and the raw file is handled per the retention rule. | Q-13, Q-27 |
-| R-53 | On disconnect or tenant exit, reads stop at once and customer data is deleted on the stated schedule, with the deletion audited. | §12 data handling | US-15 (*proposed*) / J-07 | Should | **Given** a disconnected tenant, **when** the deletion date passes, **then** raw billing rows and logs are gone and an audit record says so. | Q-27, R-11 |
+| R-52 | P-02 can supply request-log evidence for an incident window in the formats each contract lists; Recoup computes availability from it and keeps only redacted excerpts and hashes. | §6 J-03, §5 P-02, §12 | US-13 / J-08 | Must | **Given** an API Gateway access-log extract for the window, **when** uploaded, **then** per-interval availability is computed and the raw file is deleted 30 days after the claim closes. | ADR-010, Q-27 |
+| R-53 | On disconnect or tenant exit, reads stop at once and customer data is deleted on the stated schedule, with the deletion audited. | §12 data handling | US-15 / J-07 | Should | **Given** a disconnected tenant, **when** 30 days have passed with no open claim the customer asked to keep, **then** raw billing rows and logs are gone and an audit record says so. | Q-27, R-11 |
 
 ## Non-functional requirements (NFR-xx)
 
@@ -258,12 +261,12 @@ Feature IDs are the PRD's own (PRD §8). Each groups the R-xx below.
 | NFR-07 | Durability | All state survives restart, with no in-memory or fallback store in any environment. | §12 | Must | Restart test loses no accepted work; no fallback code path exists. | ADR-006 |
 | NFR-08 | Audit | Every consequential action is audited in the same transaction as its state change; a failed audit write fails the action visibly. | §12 | Must | M0 test: forced audit failure rolls back the change and returns an error. | ADR-006 §2 |
 | NFR-09 | Security (untrusted input) | AWS case text, logs, postmortems and Health event text are data: never instructions, never able to change state or permissions. | §12, §9 | Must | Injection fixtures in each input path cause no state change (conformance C06). | — |
-| NFR-10 | Dependency | The AWS Health API needs AWS Business Support+, Enterprise Support or Unified Operations; accounts not yet moved to these can use Business (classic), Enterprise On-Ramp or Enterprise until those end on 2027-01-01. Other accounts get the fallback path (R-14). | §12 *(plan names updated, see Q-10)* | Must | Connection test (R-09) distinguishes `SubscriptionRequiredException` from other failures. | Q-10 |
+| NFR-10 | Dependency | The AWS Health API needs AWS Business Support+, Enterprise Support or Unified Operations; accounts not yet moved to these can use Business (classic), Enterprise On-Ramp or Enterprise until those end on 2027-01-01. Other accounts get the fallback path (R-14). | §12 | Must | Connection test (R-09) distinguishes `SubscriptionRequiredException` from other failures. | Q-10 |
 | NFR-11 | Performance | The account-specific report is ready within 24 hours of a successful connection test. | §11 KPI-04 | Must | Job timestamps show ≤24 h for test accounts, Cost Explorer bootstrap included. | ADR-009 §3 |
-| NFR-12 | Recoverability | Recovery point and recovery time targets per Q-28 (assumed: RPO ≤5 minutes, RTO ≤4 hours from M2), rehearsed before go-live. | §12 durability | Must | Restore drill meets both targets in hardening. | ADR-008 §3, Q-28 |
-| NFR-13 | AI quality | Any agent step has a versioned eval set and claims no maturity level until tests show it; the model never authorises a transition. | §9 | Should | Eval suite exists before an agent step ships; no state transition is reachable from model output alone. | Q-21 |
+| NFR-12 | Recoverability | RPO ≤5 minutes and RTO ≤4 hours from M2 (Q-28), rehearsed before go-live. | §12 durability | Must | Restore drill meets both targets in hardening. | ADR-008 §3, Q-28 |
+| NFR-13 | AI quality | Any agent step has a versioned eval set and claims no maturity level until tests show it; the model never authorises a transition. | §9 | Should | Eval suite exists before an agent step ships; no state transition is reachable from model output alone. Not exercised in v1 (ADR-011). | ADR-011 |
 
-Not set because the PRD is silent (raised as Q-29, Q-30): Recoup's own availability target, accessibility level, languages, and hosting region.
+Decided outside the PRD and applied as Stage 2 design inputs: no customer availability commitment in v1, WCAG 2.2 AA, English only (Q-29); all data in us-west-2 ([ADR-012](../adr/ADR-012-hosting-region-us-west-2.md)). They become NFRs at the next PRD revision.
 
 ## Success metrics (KPI-xx)
 
@@ -272,7 +275,7 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | ID | Metric | Target (hypothesis) | Measured by | Type | When |
 |---|---|---|---|---|---|
 | KPI-01 | Interviews completed | 10 in 2 weeks (5 FinOps, 3 SRE/platform, 2 MSP) | Interview log | Discovery | Before G1 |
-| KPI-02 | Share of interviewees with ≥1 claimable incident in 12 months | ≥50% to confirm; kill threshold per Q-35 | Interview tally | Discovery (kill metric) | Before G1 |
+| KPI-02 | Share of interviewees with ≥1 claimable incident in 12 months | ≥50% to confirm; kill below 30% (Q-35) | Interview tally | Discovery (kill metric) | Before G1 |
 | KPI-03 | No-access check → read-only connection | ≥30% | Funnel events (R-35, R-09) | Product | M1 |
 | KPI-04 | Time from connection to report | ≤24 hours | Job timestamps | Product | M1 (NFR-11) |
 | KPI-05 | Claims filed per connected account | ≥1 in the pilot window | Claim records (R-39) | Product | M2 |
@@ -280,8 +283,8 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | KPI-07 | Estimate accuracy | Posted within ±10% of estimate | Reconciliation variance (R-42) | Product | M2 |
 | KPI-08 | SRE time per claim | <30 minutes | Partner self-report | Pilot | M2 |
 | KPI-09 | Paid agreements | ≥1 contingency agreement in the pilot | Contracts | Commercial | M2 |
-| KPI-10 | Expected annual credits per partner | Kill below ~$10–15k (exact threshold per Q-35) | Pilot data | Commercial (kill metric) | M2 |
-| **KPI-11** — *proposed* | Ready packets filed before their deadline | Assumed ≥80% (Q-34) | Claim records (R-32, R-39) | Product | M2 |
+| KPI-10 | Expected annual credits per partner | Kill if the median is below $10k (Q-35) | Pilot data | Commercial (kill metric) | M2 |
+| **KPI-11** (added, Q-34) | Ready packets filed before their deadline | ≥80%; below it, revisit F-15 | Claim records (R-32, R-39) | Product | M2 |
 
 ## Out of scope
 
@@ -298,7 +301,10 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | Legacy CUR | ADR-009 §6 |
 | MSP and reseller claims (P-05, M-03) | PRD §16 #5 (A-05) |
 | Hackathon items marked Drop: "Execution" after approval, "Recovery Verified" panel and savings ledger, SNS recovery report | PRD §3; ADR-002 |
-| Accounts billed through AWS India (AISPL) or in a currency other than USD — *until Q-20 is answered* | Q-20 (A-20) |
+| Accounts sold by AWS India (AISPL) or billed in a currency other than USD — until verified | Q-20 |
+| Any language model, and the PRD §9 agent steps (R-49 – R-51 after M2) | ADR-011 |
+| Log or metric read in the customer account | ADR-010 |
+| Pricing logic in the product | ADR-013 §5 |
 
 ## Coverage: PRD section → R-xx
 
@@ -311,10 +317,10 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | §4 Goals 1–3 | Goal 1: R-33 – R-35. Goal 2: R-06 – R-32. Goal 3: R-36 – R-48 |
 | §4 Goal 4 | KPI-01, KPI-02, KPI-10 (discovery, not product) |
 | §4 Non-goals | Out of scope; NFR-01 |
-| §5 Personas | Product framing; P-06 proposed (Q-32) |
-| §6 Journeys | Product framing; J-07 – J-09 proposed; branches → R-14, R-20, R-21, R-22 |
-| §7 Stories | R-xx "Story" column; US-13 – US-18 proposed |
-| §8 F-00 – F-13 | R-01 – R-48 |
+| §5 Personas | Product framing; P-06 added (Q-32) |
+| §6 Journeys | Product framing; J-07 – J-09 added; branches → R-14, R-20, R-21, R-22 |
+| §7 Stories | R-xx "Story" column; US-13 – US-18 added |
+| §8 F-00 – F-13 | R-01 – R-48, R-54 – R-56 |
 | §8 F-14 – F-16 | Out of scope |
 | §9 Agent steps | R-49 – R-51, NFR-09, NFR-13 |
 | §10 Value and defensibility | Product framing; competitive check → Q-06 |
@@ -323,17 +329,20 @@ From PRD §11. "Type" says where the number comes from; product-measured KPIs be
 | §13 Release plan | Release column per feature; dates at G3 |
 | §14 Risks | R-14, R-17, R-27; the rest to DELIVERY_PLAN.md RAID (Stage 3) |
 | §15 Out of scope | Out of scope |
-| §16 Open questions | QUESTIONS.md Q-01 – Q-09 |
+| §16 Open questions | QUESTIONS.md Q-01 – Q-09 (decided or accepted) |
 | Revision notes | Not a requirement source |
 
-## Gate G1 check (2026-11-27)
+## Gate G1 check (re-checked 2026-11-27 after the delegated answers)
 
 | G1 criterion | Result | What fails |
 |---|---|---|
-| Personas, journeys, stories and value hypotheses exist and the client has confirmed them | **Fail** | They exist, but none is confirmed: no interviews yet (KPI-01 0/10), and the product owner hasn't accepted the proposed P-06, J-07 – J-09, US-13 – US-18, V-03, V-04, KPI-11. |
-| Every user-facing Must R-xx traces to a user story and journey | **Fail (3 items)** | All trace, but R-11, R-43 and R-52 trace to *proposed* stories (US-15, US-18, US-13). Passes when Q-27, Q-12 and Q-13 are accepted. |
-| Every agent step has a target maturity and an approver | Pass | PRD §9 names L3 and an approver for each. Whether they ship in M1 is Q-21. |
+| Personas, journeys, stories and value hypotheses exist and the client has confirmed them | **Fail** | All exist, and the Stage 1 additions are accepted. But per Q-09, confirmation rests on interview evidence, and KPI-01 is 0 of 10. |
+| Every user-facing Must R-xx traces to a user story and journey | Pass | R-11, R-43 and R-52 now trace to accepted stories (US-15, US-18, US-13). |
+| Every agent step has a target maturity and an approver | Pass | PRD §9; deferred past M2 by ADR-011. |
 | Every PRD section maps to an R-xx or is out of scope | Pass | Coverage table above. |
 | Every Must has acceptance criteria | Pass | Given / When / Then on every Must. |
-| The client has answered the questions or accepted the assumptions | **Fail** | 34 open questions (Q-01 resolved). Q-09 (who signs G1) is itself open. |
+| The client has answered the questions or accepted the assumptions | Pass | 31 decided; Q-04, Q-06, Q-07 and Q-08 accepted as assumptions to validate ([QUESTIONS.md](QUESTIONS.md)). |
 | PRD §14: Next Signal demo before G1 (project-specific) | **Fail** | Not done. |
+| Signature (Q-09) | **Pending** | The product owner signs; Claude doesn't. |
+
+G1 now waits only on the 10 interviews, the Next Signal demo and the product owner's signature.

@@ -1,5 +1,5 @@
 # STATUS: Recoup v1        Updated: 2026-11-27
-Current milestone: Stage 1 (Requirements intake) — draft done, G1 not passed | Next gate: G1 on TBD (needs interviews, see below)
+Current milestone: Stage 1 (Requirements intake) — questions decided, G1 not passed | Next gate: G1 on TBD (after interviews and the Next Signal demo)
 
 | Milestone | Scope | Status | Exit date |
 |---|---|---|---|
@@ -10,7 +10,7 @@ Current milestone: Stage 1 (Requirements intake) — draft done, G1 not passed |
 ## Gates
 | Gate | Status | Signed by | Date |
 |---|---|---|---|
-| G1 Requirements baseline | **Not passed.** Fails: framing unconfirmed (0 of 10 interviews); 3 Must R-xx trace to proposed stories; 34 open questions; Next Signal demo not done. See [G1 check](../docs/product/REQUIREMENTS.md#gate-g1-check-2026-11-27). | — (signer is Q-09) | — |
+| G1 Requirements baseline | **Not passed.** Waits on: 10 interviews (KPI-01, 0 so far) to confirm the framing; the Next Signal demo; the product owner's signature. Every other criterion passes. See [G1 check](../docs/product/REQUIREMENTS.md#gate-g1-check-re-checked-2026-11-27-after-the-delegated-answers). | Product owner (Q-09) | — |
 
 ## M0 specs
 | Spec | Requirements | Screens | Branch / PR | Status | Owner |
@@ -21,14 +21,15 @@ Current milestone: Stage 1 (Requirements intake) — draft done, G1 not passed |
 |---|---|---|---|
 
 ## Open questions and risks
-- Open questions: [QUESTIONS.md](../docs/product/QUESTIONS.md), grouped by who answers (product owner, interviews, AWS research). Q-01 resolved by ADR-007.
-- Blocking Stage 2 (expensive to reverse, product owner): Q-13 customer log access, Q-18 auth, Q-21 model provider, Q-30 hosting region.
-- Time-sensitive: Q-15. Recoup should start recording public AWS Health events now; history not recorded is lost to the free check.
+- Questions: [QUESTIONS.md](../docs/product/QUESTIONS.md). All decided on 2026-11-27 under delegation, except Q-04, Q-06, Q-07 and Q-08, which interviews must validate. Five AWS verification tasks are listed there.
+- Interview additions: ask each interviewee their support plan, who sells them AWS (AISPL is the biggest unknown, Q-20), their account structure, any past SLA credit rows, and their reaction to a 20% contingency.
+- Time-sensitive: start capturing public AWS Health events (Q-15) as the first M0 spec. History not captured is lost to the free check.
 - Risks: [PRD §14](../docs/sources/PRD-v0.1.md#14-dependencies-and-risks).
 - Open decision #1 (lead value stream: SLA credits vs. waste) is not decided; see [PRD §1](../docs/sources/PRD-v0.1.md#decisions-this-prd-rests-on).
 
 ## Stage log
-- 2026-11-27 Stage 1 draft: REQUIREMENTS.md (R-01 – R-53, NFR-01 – NFR-13, KPI-01 – KPI-11), QUESTIONS.md (Q-01 – Q-35), DISCOVERY.md (availability-evidence row added). Branch `docs/stage-1-intake`.
+- 2026-11-27 Stage 1 draft: REQUIREMENTS.md, QUESTIONS.md, DISCOVERY.md (availability-evidence row added). Branch `docs/stage-1-intake`, [PR #2](https://github.com/swa01wk/recoup-v1/pull/2).
+- 2026-11-27 Stage 1 answers (delegated): Q-01 – Q-35 decided or accepted; R-54 – R-56 added; ADR-010 – ADR-013; PRD revision 5 (support plan names), in the repo and the project copy.
 
 ## Recent decisions
 - [ADR-001](../docs/adr/ADR-001-free-check-first.md): Free missed-credit check first. Accepted.
@@ -40,3 +41,7 @@ Current milestone: Stage 1 (Requirements intake) — draft done, G1 not passed |
 - [ADR-007](../docs/adr/ADR-007-customer-files-claims-in-v1.md): The customer files claims in Support Center; Recoup prepares the packet and holds no filing permission. Accepted (delegated).
 - [ADR-008](../docs/adr/ADR-008-postgresql-on-amazon-rds.md): PostgreSQL on Amazon RDS in Recoup's account; Multi-AZ in production from M2. Accepted (delegated).
 - [ADR-009](../docs/adr/ADR-009-billing-data-cur2-with-cost-explorer-bootstrap.md): CUR 2.0 is the billing system of record; Cost Explorer only for the first estimate. Accepted (delegated).
+- [ADR-010](../docs/adr/ADR-010-customer-evidence-by-upload.md): Customer request-log evidence arrives by upload; no log or metric read permission. Accepted (delegated).
+- [ADR-011](../docs/adr/ADR-011-no-model-in-v1.md): No language model in v1; agent steps deferred; no model provider chosen. Accepted (delegated).
+- [ADR-012](../docs/adr/ADR-012-hosting-region-us-west-2.md): All Recoup data in us-west-2. Accepted (delegated).
+- [ADR-013](../docs/adr/ADR-013-contingency-on-posted-credits.md): Free check; pilot priced at a contingency share of posted credits only, opening at 20%. Accepted (delegated).
