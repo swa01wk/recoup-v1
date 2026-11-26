@@ -33,23 +33,24 @@ The ADRs (`docs/adr/ADR-001-free-check-first.md` for D1, `docs/adr/ADR-002-new-r
 
 ## 3. Current state: the hackathon build (baseline)
 
-Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels per project rules.
+Source: `docs/discovery/DISCOVERY.md`, repo `swa01wk/recoup` @ `d009df7`. Labels per project rules. DISCOVERY.md owns the evidence; ADR-002 owns the port list.
 
 | Capability | Status | Disposition in the new version |
 |---|---|---|
-| Read-only cross-account role with ExternalId (`infra/cdk/lib/stacks/iam-stack.ts`) | IMPLEMENTED | **Port**, extend permissions for billing data (CUR / Data Exports) and AWS Health |
+| Read-only role with ExternalId (`infra/cdk/lib/stacks/iam-stack.ts`, `RecoupReadOnlyRole`) | IMPLEMENTED (single-account: trusts a role in the same account; default ExternalId constant) | **Port the pattern only**; rebuild as a customer-deployed role with billing-data and AWS Health reads (ADR-003) |
+| Remediation role and live EC2 stop (`iam-stack.ts` `RecoupRemediationRole`, `tools/ec2_tools.py`) | IMPLEMENTED (write path) | **Drop.** Never port; no writes in v1 (ADR-003) |
 | AWS waste scanners, 9 services, us-east-1, list-price estimates | IMPLEMENTED (heuristic) | **Out of scope for v1.** Stays in the hackathon repo; revisit with open decision #1 |
 | Evidence packaging and recovery cases for waste findings | IMPLEMENTED (no new evidence gathered) | Out of scope for v1 |
 | Human triage with approval bound to claim hash, amount, state version, 24h expiry (`approval/flow.py`) | IMPLEMENTED (logic) | **Port** into the control plane for M2 |
 | "Execution" after approval | NOT ON PATH — approve jumps to RECOVERED | **Drop.** Never port |
 | "Recovery Verified" panel and Recovery Ledger "Verified savings" | DEMO — static check marks, estimate copied as verified | **Drop.** Replace with the SLA credit ledger (F-13) |
 | SNS "recovery report" email | IMPLEMENTED, delivery unverified, says "advisory" | **Drop** |
-| SLA credit calculator, Decimal (`engines/calculator.py`) | REPLAY | **Port and fix** (per-interval availability, exclusions) |
-| SLA contract catalog, 1 contract: API Gateway 2022-05-05 (`sla_catalog/`) | REPLAY; terms match current public SLA; `source_hash` placeholder | **Port**, fix hash, extend |
-| Claim submission, case monitoring | STUBBED (replay IDs, PENDING/$0) | **Rebuild** |
+| SLA credit calculator, Decimal (`engines/calculator.py`) | REPLAY; any imperfect interval counts as fully down; no $1 minimum; exclusions never evaluated | **Port and fix** (ADR-005) |
+| SLA contract catalog, 1 contract: API Gateway 2022-05-05 (`sla_catalog/`, `engines/sla_resolver.py`) | REPLAY; tiers and deadline match the public SLA; exclusions and required fields don't; `source_hash` placeholder that its test accepts | **Port and rebuild** as pinned snapshots (ADR-005) |
+| Claim submission, case monitoring | STUBBED (made-up replay case ID when there is no valid approval; fails when there is one; monitoring always PENDING/$0) | **Rebuild** (ADR-004) |
 | AWS Health event intake (`sqs_poller.py`) | Events acknowledged and dropped | **Rebuild** |
 | Strands / AgentCore agent nodes | PARTIAL | **Defer** (start deterministic) |
-| Opportunity state | In memory | **Rebuild** on durable storage |
+| Opportunity, approval and outcome state | DynamoDB when reachable, silent in-memory fallback | **Rebuild** on PostgreSQL with an outbox, no fallback (ADR-006) |
 | Tests and CI | Not run; no CI in repo | **Rebuild** under PROCESS.md M0 |
 
 ## 4. Goals and non-goals
@@ -224,3 +225,4 @@ Waste remediation and savings (hackathon scanners stay in the old repo), commitm
 - **v0.1, 2026-11-27:** First draft, written by Claude from the strategy review, decisions D1–D2 and the repository baseline, for the product owner to revise. Discovery-phase edits allowed in place until G3, per PROCESS.md.
 - **v0.1, 2026-11-27 (revision 2):** Added "Decisions this PRD rests on" (§1); softened the claim-filing statement in §2 (most SLAs need a request; some instance-level terms waive charges automatically); noted in §13 that D1 row 0 ships in M0.
 - **v0.1, 2026-11-27 (revision 3):** Updated the seed docs' references to their repo paths after the repo bootstrap: the "Inputs" line (strategy review, DISCOVERY.md, ADR-001, ADR-002), the decision-log reference in §1 (now the ADRs) and the baseline source in §3 (now DISCOVERY.md). Approved by the product owner. No other change.
+- **v0.1, 2026-11-27 (revision 4):** Corrected §3 against `docs/discovery/DISCOVERY.md`: the role is single-account today; added the remediation role and EC2 stop path (drop); stated the calculator and catalog defects; restated the claim-submission stub; state is DynamoDB with a silent in-memory fallback. Dispositions now link ADR-003 to ADR-006. Approved by the product owner. No other section changed.

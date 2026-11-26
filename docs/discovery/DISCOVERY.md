@@ -69,12 +69,14 @@ Compared with the AWS API Gateway SLA page (https://aws.amazon.com/api-gateway/s
 
 ## Differences from PRD §3
 
-PRD §3 is consistent with the code, except for these points, which the product owner should review:
+PRD v0.1 §3 as first written differed from the code on these points. PRD revision 4 corrects them, and each is resolved by an ADR:
 
-1. §3 calls the role a "read-only cross-account role". In the code it trusts a role in the same account and has a default ExternalId constant.
-2. §3 doesn't mention that `iam-stack.ts` also defines `RecoupRemediationRole`, or that `tools/ec2_tools.py` calls `StopInstances`.
-3. §3 says opportunity state is "in memory". It's DynamoDB when reachable, with a silent in-memory fallback.
-4. §3 doesn't mention that the catalog hash test passes on the placeholder, or that the catalog's exclusions and required fields differ from the public SLA.
-5. §3 lists "Claim submission" as STUBBED (replay IDs). More precisely, the replay ID is returned only when there is **no** valid approval; with a valid approval, submission fails.
+| # | Difference | Resolved by |
+|---|---|---|
+| 1 | §3 called the role a "read-only cross-account role". In the code it trusts a role in the same account and has a default ExternalId constant. | [ADR-003](../adr/ADR-003-customer-read-only-role.md) |
+| 2 | §3 didn't mention that `iam-stack.ts` also defines `RecoupRemediationRole`, or that `tools/ec2_tools.py` calls `StopInstances`. | [ADR-003](../adr/ADR-003-customer-read-only-role.md), [ADR-002](../adr/ADR-002-new-repo-via-process.md) |
+| 3 | §3 said opportunity state is "in memory". It's DynamoDB when reachable, with a silent in-memory fallback. | [ADR-006](../adr/ADR-006-durable-state-no-fallback.md) |
+| 4 | §3 didn't mention that the catalog hash test passes on the placeholder, or that the catalog's exclusions and required fields differ from the public SLA. | [ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md) |
+| 5 | §3 listed "Claim submission" as STUBBED (replay IDs). The replay ID is returned only when there is **no** valid approval; with a valid approval, submission fails. | [ADR-004](../adr/ADR-004-claim-state-from-system-of-record.md) |
 
 What to port is decided in [ADR-002](../adr/ADR-002-new-repo-via-process.md), not here.

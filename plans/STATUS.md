@@ -23,3 +23,7 @@ Current milestone: Stage 1 (Requirements intake) | Next gate: G1 on TBD
 ## Recent decisions
 - [ADR-001](../docs/adr/ADR-001-free-check-first.md): Free missed-credit check first. Accepted.
 - [ADR-002](../docs/adr/ADR-002-new-repo-via-process.md): New repo built through PROCESS.md; port only listed modules. Accepted.
+- [ADR-003](../docs/adr/ADR-003-customer-read-only-role.md): Customer-deployed read-only role with a Recoup-generated ExternalId; no write role. Accepted.
+- [ADR-004](../docs/adr/ADR-004-claim-state-from-system-of-record.md): Claim stages move only on system-of-record evidence; nothing simulated. Accepted.
+- [ADR-005](../docs/adr/ADR-005-sla-catalog-pinned-snapshots.md): SLA contracts as pinned, hashed snapshots; per-contract calculation. Accepted.
+- [ADR-006](../docs/adr/ADR-006-durable-state-no-fallback.md): PostgreSQL and outbox for all state and audit; no fallback. Accepted.
