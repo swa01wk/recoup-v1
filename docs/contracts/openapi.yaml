@@ -1,0 +1,4440 @@
+# Recoup API contract. Generated once in Stage 2a; from now on edit this file directly, in a spec PR.
+# Contract version: info.version. Rules: docs/contracts/README.md.
+openapi: 3.1.0
+info:
+  title: Recoup API
+  version: 0.1.0
+  description: 'Contract for Recoup v1 (Stage 2a, 2026-11-27). Versioning rules: docs/contracts/README.md.
+
+
+    Extensions: x-requirements (R-xx served), x-milestone (M0/M1/M2), x-roles (tenant roles allowed; ''operator'' = the P-06 pool). Authorisation
+    is enforced server-side by the control plane, never by the UI.
+
+
+    Every amount is a Money object with stage and source (R-02). State-changing commands need Idempotency-Key, and session requests need the X-Recoup-CSRF
+    header (ADR-017).'
+servers:
+- url: /api/v1
+tags:
+- name: Free check
+- name: Auth
+- name: Tenancy
+- name: Connections
+- name: Incidents
+- name: Reports
+- name: Claims
+- name: Evidence
+- name: Packets
+- name: Approvals
+- name: Cases
+- name: Reconciliation
+- name: Ledger
+- name: Deadlines
+- name: Operator
+paths:
+  /catalog/options:
+    get:
+      operationId: getCatalogOptions
+      summary: Regions, services and spend bands for the no-access check
+      tags:
+      - Free check
+      x-requirements:
+      - R-33
+      x-milestone: M1
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogOptions'
+  /estimates:
+    post:
+      operationId: createEstimate
+      summary: Run the no-access check
+      tags:
+      - Free check
+      x-requirements:
+      - R-33
+      - R-34
+      x-milestone: M1
+      description: Anonymous. Sets or reads the first-party anonymous session cookie (ADR-017 §5).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstimateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstimateResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /estimates/{estimate_id}:
+    get:
+      operationId: getEstimate
+      summary: Get a no-access check result
+      tags:
+      - Free check
+      x-requirements:
+      - R-34
+      x-milestone: M1
+      security: []
+      parameters:
+      - name: estimate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstimateResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /funnel-events:
+    post:
+      operationId: recordFunnelEvent
+      summary: Record a next-step choice
+      tags:
+      - Free check
+      x-requirements:
+      - R-35
+      - KPI-03
+      x-milestone: M1
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FunnelEventRequest'
+      responses:
+        '204':
+          description: Done
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /role-template/permissions:
+    get:
+      operationId: getRolePermissions
+      summary: The exact permission list of the current read-only role template
+      tags:
+      - Connections
+      x-requirements:
+      - R-07
+      - US-02
+      x-milestone: M1
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionList'
+  /auth/login:
+    get:
+      operationId: login
+      summary: Start sign-in (OIDC authorisation code + PKCE)
+      tags:
+      - Auth
+      x-requirements:
+      - R-56
+      x-milestone: M0
+      security: []
+      parameters:
+      - name: pool
+        in: query
+        required: true
+        schema:
+          enum:
+          - customer
+          - operator
+      responses:
+        '302':
+          description: Redirect to Cognito managed login (ADR-017).
+  /auth/callback:
+    get:
+      operationId: authCallback
+      summary: OIDC callback; sets the session cookie
+      tags:
+      - Auth
+      x-requirements:
+      - R-56
+      x-milestone: M0
+      security: []
+      parameters:
+      - name: code
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '302':
+          description: Redirect into the app with a session cookie.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Sign out and revoke the session
+      tags:
+      - Auth
+      x-requirements:
+      - R-56
+      x-milestone: M0
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+        csrf: []
+      responses:
+        '204':
+          description: Done
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /me:
+    get:
+      operationId: getMe
+      summary: Current user, memberships and CSRF token
+      tags:
+      - Auth
+      x-requirements:
+      - R-56
+      x-milestone: M0
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /me/current-tenant:
+    put:
+      operationId: setCurrentTenant
+      summary: Switch the session's tenant
+      tags:
+      - Auth
+      x-requirements:
+      - R-56
+      x-milestone: M0
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+        csrf: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                tenant_id:
+                  type: string
+                  format: uuid
+              required:
+              - tenant_id
+      responses:
+        '204':
+          description: Done
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tenants:
+    post:
+      operationId: createTenant
+      summary: Create a tenant; the creator becomes its approver (A-36)
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles: []
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /tenant:
+    get:
+      operationId: getTenant
+      summary: Current tenant
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /tenant/members:
+    get:
+      operationId: listMembers
+      summary: List members
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /tenant/members/{sub}:
+    patch:
+      operationId: changeMemberRole
+      summary: 'Change a member''s role (A-36: approvers only)'
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - name: sub
+        in: path
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleChange'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: removeMember
+      summary: Remove a member; revokes their sessions
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - name: sub
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Done
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tenant/invitations:
+    post:
+      operationId: inviteMember
+      summary: Invite a member by email (A-36)
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /invitations/{token}/accept:
+    post:
+      operationId: acceptInvitation
+      summary: Accept an invitation after signing in
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-56
+      x-milestone: M1
+      x-roles: []
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /tenant/exit:
+    post:
+      operationId: requestTenantExit
+      summary: 'Leave Recoup: stop all reads and schedule deletion'
+      tags:
+      - Tenancy
+      x-requirements:
+      - R-53
+      - US-15
+      x-milestone: M1
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                confirm:
+                  const: true
+              required:
+              - confirm
+      responses:
+        '202':
+          description: Accepted; deletion follows Q-27.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections:
+    get:
+      operationId: listConnections
+      summary: List AWS account connections
+      tags:
+      - Connections
+      x-requirements:
+      - R-06
+      - R-11
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Connection'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+    post:
+      operationId: createConnection
+      summary: 'Create a connection: generates the ExternalId and the template link'
+      tags:
+      - Connections
+      x-requirements:
+      - R-06
+      - NFR-02
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /connections/{connection_id}:
+    get:
+      operationId: getConnection
+      summary: Get a connection
+      tags:
+      - Connections
+      x-requirements:
+      - R-06
+      - R-11
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/discovery:
+    put:
+      operationId: setDiscoveryAnswers
+      summary: Record seller, support plan and log retention
+      tags:
+      - Connections
+      x-requirements:
+      - ADR-014
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscoveryAnswers'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/cur-export:
+    put:
+      operationId: setCurExport
+      summary: Tell Recoup where the CUR 2.0 export lands
+      tags:
+      - Connections
+      x-requirements:
+      - R-25
+      - R-27
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CurExport'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/cost-explorer-estimate:
+    get:
+      operationId: getCostExplorerEstimate
+      summary: How many Cost Explorer calls the first report makes, and their cost
+      tags:
+      - Connections
+      x-requirements:
+      - R-10
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostExplorerEstimate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/tests:
+    post:
+      operationId: startConnectionTest
+      summary: Run the connection test (async; poll the result)
+      tags:
+      - Connections
+      x-requirements:
+      - R-09
+      - NFR-10
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/tests/{test_id}:
+    get:
+      operationId: getConnectionTest
+      summary: Connection test result
+      tags:
+      - Connections
+      x-requirements:
+      - R-09
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - name: test_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/disconnect:
+    post:
+      operationId: disconnect
+      summary: Stop all reads now; delete data on schedule
+      tags:
+      - Connections
+      x-requirements:
+      - R-11
+      - R-53
+      - US-15
+      x-milestone: M1
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/customer-incidents:
+    get:
+      operationId: listCustomerIncidents
+      summary: Customer-supplied incidents
+      tags:
+      - Incidents
+      x-requirements:
+      - R-14
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerIncident'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createCustomerIncident
+      summary: Enter an incident that hit this account
+      tags:
+      - Incidents
+      x-requirements:
+      - R-14
+      - US-14
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerIncidentCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerIncident'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /connections/{connection_id}/reports:
+    post:
+      operationId: startReport
+      summary: Build the account report (async)
+      tags:
+      - Reports
+      x-requirements:
+      - R-12
+      - R-13
+      - R-25
+      - R-55
+      - NFR-11
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreate'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /reports/{report_id}:
+    get:
+      operationId: getReport
+      summary: Get a report
+      tags:
+      - Reports
+      x-requirements:
+      - R-55
+      - R-03
+      - R-27
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims:
+    get:
+      operationId: listClaims
+      summary: List claims
+      tags:
+      - Claims
+      x-requirements:
+      - R-01
+      - R-02
+      - R-55
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - name: stage
+        in: query
+        schema:
+          enum:
+          - detected
+          - eligible
+          - unproven
+          - not_eligible
+          - approved
+          - submitted
+          - granted
+          - denied
+          - posted
+          - refunded_outside_bill
+          - closed
+      - name: connection_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ClaimSummary'
+                  page:
+                    $ref: '#/components/schemas/PageInfo'
+                required:
+                - items
+                - page
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /claims/{claim_id}:
+    get:
+      operationId: getClaim
+      summary: Get a claim with incidents, eligibility and history
+      tags:
+      - Claims
+      x-requirements:
+      - R-01
+      - R-18
+      - R-24
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/incidents/{claim_incident_id}/window:
+    put:
+      operationId: setIncidentWindow
+      summary: Enter or confirm an incident window
+      tags:
+      - Claims
+      x-requirements:
+      - R-18
+      - ADR-011
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - name: claim_incident_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WindowUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimIncident'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/attestations:
+    post:
+      operationId: attestExclusion
+      summary: Attest that an exclusion's cause wasn't on the customer side
+      tags:
+      - Claims
+      x-requirements:
+      - R-19
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttestationCreate'
+      responses:
+        '202':
+          description: Recorded; eligibility re-runs.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/evidence-uploads:
+    get:
+      operationId: listEvidenceUploads
+      summary: List evidence uploads
+      tags:
+      - Evidence
+      x-requirements:
+      - R-52
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvidenceUpload'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createEvidenceUpload
+      summary: Start an upload; returns a pre-signed POST
+      tags:
+      - Evidence
+      x-requirements:
+      - R-52
+      - US-13
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvidenceUploadCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceUpload'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /evidence-uploads/{upload_id}/complete:
+    post:
+      operationId: completeEvidenceUpload
+      summary: Mark an upload finished; parsing starts
+      tags:
+      - Evidence
+      x-requirements:
+      - R-52
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - name: upload_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceUpload'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/excerpts:
+    get:
+      operationId: listExcerpts
+      summary: Redacted log excerpts and what was removed
+      tags:
+      - Evidence
+      x-requirements:
+      - R-29
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LogExcerpt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/excerpts/{excerpt_id}/review:
+    post:
+      operationId: reviewExcerpt
+      summary: Confirm the redactions before the packet is final
+      tags:
+      - Evidence
+      x-requirements:
+      - R-29
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - name: excerpt_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogExcerpt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/packet:
+    get:
+      operationId: getPacket
+      summary: The ready-to-file packet
+      tags:
+      - Packets
+      x-requirements:
+      - R-28
+      - R-30
+      - R-31
+      - R-32
+      - R-55
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Packet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/packet/attachment:
+    get:
+      operationId: downloadPacketAttachment
+      summary: Download redacted excerpts as the case attachment
+      tags:
+      - Packets
+      x-requirements:
+      - R-31
+      x-milestone: M1
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: Excerpt file
+          content:
+            text/plain:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /claims/{claim_id}/approvals:
+    post:
+      operationId: approveClaim
+      summary: Approve, bound to content hash, amount and stage version
+      tags:
+      - Approvals
+      x-requirements:
+      - R-36
+      - R-38
+      - R-56
+      x-milestone: M2
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/approvals/decline:
+    post:
+      operationId: declineClaim
+      summary: Decline with a reason (stage unchanged)
+      tags:
+      - Approvals
+      x-requirements:
+      - R-37
+      x-milestone: M2
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonedCommand'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /approvals/{approval_id}/revoke:
+    post:
+      operationId: revokeApproval
+      summary: Revoke before submission
+      tags:
+      - Approvals
+      x-requirements:
+      - R-37
+      x-milestone: M2
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - name: approval_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonedCommand'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Approval'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/submissions:
+    post:
+      operationId: recordSubmission
+      summary: Record the AWS case ID after filing
+      tags:
+      - Cases
+      x-requirements:
+      - R-39
+      - US-08
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmissionCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/outcomes:
+    post:
+      operationId: recordOutcome
+      summary: Record AWS's decision
+      tags:
+      - Cases
+      x-requirements:
+      - R-40
+      - US-10
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutcomeCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Outcome'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/reopen:
+    post:
+      operationId: reopenClaim
+      summary: Reopen a denied claim for resubmission
+      tags:
+      - Cases
+      x-requirements:
+      - R-41
+      x-milestone: M2
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonedCommand'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/close:
+    post:
+      operationId: closeClaim
+      summary: Close a denied claim
+      tags:
+      - Cases
+      x-requirements:
+      - R-41
+      x-milestone: M2
+      x-roles:
+      - approver
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReasonedCommand'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/credit-matches:
+    get:
+      operationId: listCreditMatches
+      summary: Verified and possible credit-line matches
+      tags:
+      - Reconciliation
+      x-requirements:
+      - R-42
+      - R-43
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CreditMatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /credit-matches/{match_id}/decision:
+    post:
+      operationId: decideCreditMatch
+      summary: Confirm or reject a possible match (P-03)
+      tags:
+      - Reconciliation
+      x-requirements:
+      - R-43
+      - US-18
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - name: match_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchDecision'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditMatch'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /claims/{claim_id}/refund-outside-bill:
+    post:
+      operationId: recordRefundOutsideBill
+      summary: Record a refund outside the bill (customer-entered)
+      tags:
+      - Reconciliation
+      x-requirements:
+      - R-54
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      security:
+      - session: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundOutsideBillCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /ledger:
+    get:
+      operationId: getLedger
+      summary: 'SLA credit ledger: totals per stage'
+      tags:
+      - Ledger
+      x-requirements:
+      - R-48
+      - R-03
+      - R-54
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ledger'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /claims/{claim_id}/evidence-trail:
+    get:
+      operationId: exportEvidenceTrail
+      summary: Export the claim's evidence trail
+      tags:
+      - Ledger
+      x-requirements:
+      - R-47
+      - US-12
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      parameters:
+      - $ref: '#/components/parameters/ClaimId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceTrail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /deadlines:
+    get:
+      operationId: listDeadlines
+      summary: Claims nearing their deadline
+      tags:
+      - Deadlines
+      x-requirements:
+      - R-46
+      x-milestone: M2
+      x-roles:
+      - approver
+      - contributor
+      - viewer
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeadlineList'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+  /ops/public-incidents:
+    get:
+      operationId: opsListPublicIncidents
+      summary: Public incident record
+      tags:
+      - Operator
+      x-requirements:
+      - R-34
+      - ADR-021
+      x-milestone: M1
+      x-roles:
+      - operator
+      security:
+      - opsSession: []
+      parameters:
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PublicIncident'
+                  page:
+                    $ref: '#/components/schemas/PageInfo'
+                required:
+                - items
+                - page
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: opsCreatePublicIncident
+      summary: Enter a pre-capture public incident
+      tags:
+      - Operator
+      x-requirements:
+      - ADR-021
+      - Q-15
+      x-milestone: M1
+      x-roles:
+      - operator
+      security:
+      - opsSession: []
+        csrf: []
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicIncidentCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicIncident'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /ops/sla-reviews:
+    get:
+      operationId: opsListSlaReviews
+      summary: SLA recheck reviews
+      tags:
+      - Operator
+      x-requirements:
+      - R-17
+      - US-16
+      x-milestone: M1
+      x-roles:
+      - operator
+      security:
+      - opsSession: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SlaReview'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /ops/sla-reviews/{review_id}/dismiss:
+    post:
+      operationId: opsDismissSlaReview
+      summary: Dismiss a review (publishing a new version happens by PR)
+      tags:
+      - Operator
+      x-requirements:
+      - R-17
+      - US-16
+      x-milestone: M1
+      x-roles:
+      - operator
+      security:
+      - opsSession: []
+        csrf: []
+      parameters:
+      - name: review_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+              required:
+              - reason
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlaReview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /ops/tenants/{tenant_id}/entitlement:
+    put:
+      operationId: opsSetEntitlement
+      summary: Set a tenant's pilot agreement flag
+      tags:
+      - Operator
+      x-requirements:
+      - R-55
+      x-milestone: M1
+      x-roles:
+      - operator
+      security:
+      - opsSession: []
+        csrf: []
+      parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntitlementUpdate'
+      responses:
+        '204':
+          description: Done
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: recoup_session
+      description: HttpOnly session cookie from the customer pool (ADR-017 §3).
+    opsSession:
+      type: apiKey
+      in: cookie
+      name: recoup_ops_session
+      description: Operator pool session (ADR-017 §1).
+    csrf:
+      type: apiKey
+      in: header
+      name: X-Recoup-CSRF
+      description: Must match the session's CSRF token.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+      description: Required on every state-changing command. A repeat returns the first result (C01).
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+    ClaimId:
+      name: claim_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ConnectionId:
+      name: connection_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    BadRequest:
+      description: Validation failed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Unauthenticated:
+      description: No valid session.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Role or MFA requirement not met; audited (R-38).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Not found, or belongs to another tenant (never distinguished; C07).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Conflict:
+      description: stage_conflict, stale_version, guard_failed or idempotency_conflict.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    RateLimited:
+      description: Too many anonymous requests (WAF, ADR-023 §2).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  schemas:
+    Money:
+      type: object
+      additionalProperties: false
+      properties:
+        amount:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]{2}$
+          description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+        currency:
+          const: USD
+        stage:
+          enum:
+          - estimate
+          - approved
+          - submitted
+          - granted
+          - posted
+          - refunded_outside_bill
+          description: R-02. Only 'posted' is verified money (ADR-004).
+        source:
+          enum:
+          - calculation
+          - cost_explorer
+          - cur2
+          - customer_entered
+          description: Where the number comes from (R-02).
+        basis_source:
+          enum:
+          - cost_explorer
+          - cur2
+          description: 'For source=calculation: what the billed charges behind it came from (R-25).'
+        verified:
+          type: boolean
+          description: True only for stage=posted (R-48).
+      required:
+      - amount
+      - currency
+      - stage
+      - source
+      - verified
+      description: Every dollar in the API is a Money object. A bare number is a contract-test failure (R-02).
+    MoneyRange:
+      type: object
+      additionalProperties: false
+      properties:
+        low:
+          $ref: '#/components/schemas/Money'
+        high:
+          $ref: '#/components/schemas/Money'
+        assumptions:
+          type: array
+          items:
+            type: string
+      required:
+      - low
+      - high
+      - assumptions
+      description: Estimator range (R-34). Both ends are stage=estimate, source=calculation.
+    StageTotal:
+      type: object
+      additionalProperties: false
+      properties:
+        stage:
+          enum:
+          - estimate
+          - approved
+          - submitted
+          - granted
+          - posted
+          - refunded_outside_bill
+        total:
+          $ref: '#/components/schemas/Money'
+        claim_count:
+          type: integer
+          minimum: 0
+      required:
+      - stage
+      - total
+      - claim_count
+      description: One total per stage; never across stages (R-03).
+    BilledCharge:
+      type: object
+      additionalProperties: false
+      properties:
+        billing_period:
+          type: string
+          format: date
+        product_code:
+          type: string
+        region:
+          type: string
+        amount:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]{2}$
+          description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+        currency:
+          const: USD
+        source:
+          enum:
+          - cost_explorer
+          - cur2
+        label:
+          enum:
+          - estimate, source Cost Explorer
+          - billed, source CUR 2.0
+          description: 'R-25: Cost Explorer charges are estimates and never count toward posted.'
+      required:
+      - billing_period
+      - product_code
+      - region
+      - amount
+      - currency
+      - source
+      - label
+    AwsApiCost:
+      type: object
+      additionalProperties: false
+      properties:
+        calls:
+          type: integer
+          minimum: 0
+        unit_price_usd:
+          type: string
+        total_usd:
+          type: string
+        billed_to:
+          const: customer_aws_account
+        label:
+          const: AWS charge to your account (estimate)
+      required:
+      - calls
+      - unit_price_usd
+      - total_usd
+      - billed_to
+      - label
+      description: Cost Explorer API calls the first report will make (R-10, ADR-009 §4). Not a claim amount.
+    Problem:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          enum:
+          - validation_failed
+          - not_authenticated
+          - mfa_required
+          - forbidden_role
+          - not_found
+          - stage_conflict
+          - stale_version
+          - guard_failed
+          - idempotency_conflict
+          - approval_invalid
+          - deadline_passed
+          - upload_rejected
+          - aws_access_denied
+          - aws_unavailable
+          - health_api_not_on_plan
+          - cur_export_missing
+          - rate_limited
+          - internal
+          description: Typed failure (R-05). The UI picks its repair action from this.
+        detail:
+          type: string
+        instance:
+          type: string
+        trace_id:
+          type: string
+        violations:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+            required:
+            - field
+            - message
+      required:
+      - type
+      - title
+      - status
+      - code
+      description: RFC 9457 problem details.
+    PageInfo:
+      type: object
+      additionalProperties: false
+      properties:
+        next_cursor:
+          oneOf:
+          - type: string
+          - type: 'null'
+      required:
+      - next_cursor
+    CatalogOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        regions:
+          type: array
+          items:
+            type: string
+          description: Regions with Health capture (ADR-021 §1).
+        services:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              contract_id:
+                type: string
+              service_name:
+                type: string
+            required:
+            - contract_id
+            - service_name
+        spend_bands:
+          type: array
+          items:
+            enum:
+            - under_1k
+            - 1k_10k
+            - 10k_50k
+            - 50k_250k
+            - over_250k
+        capture_started_at:
+          type: string
+          format: date-time
+      required:
+      - regions
+      - services
+      - spend_bands
+      - capture_started_at
+    EstimateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        regions:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 30
+        services:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              contract_id:
+                type: string
+              monthly_spend_band:
+                enum:
+                - under_1k
+                - 1k_10k
+                - 10k_50k
+                - 50k_250k
+                - over_250k
+            required:
+            - contract_id
+            - monthly_spend_band
+          minItems: 1
+          maxItems: 10
+      required:
+      - regions
+      - services
+      description: R-33. No AWS access and no contact details (Q-31).
+    EstimateIncident:
+      type: object
+      additionalProperties: false
+      properties:
+        public_incident_id:
+          type: string
+          format: uuid
+        service_name:
+          type: string
+        contract_id:
+          type: string
+        region:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        source:
+          enum:
+          - eventbridge
+          - health_api
+          - operator_entered
+        source_label:
+          type: string
+          description: e.g. 'AWS Health event (captured by Recoup)' or 'entered by Recoup from the AWS Health Dashboard'.
+        event_arn:
+          oneOf:
+          - type: string
+          - type: 'null'
+        deadline_earlier:
+          type: string
+          format: date
+        deadline_later:
+          type: string
+          format: date
+        range:
+          $ref: '#/components/schemas/MoneyRange'
+      required:
+      - public_incident_id
+      - service_name
+      - contract_id
+      - region
+      - start_time
+      - end_time
+      - source
+      - source_label
+      - event_arn
+      - deadline_earlier
+      - deadline_later
+      - range
+    EstimateResult:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        generated_at:
+          type: string
+          format: date-time
+        claim_window:
+          $ref: '#/components/schemas/DateRange'
+        incidents:
+          type: array
+          items:
+            $ref: '#/components/schemas/EstimateIncident'
+        history_note:
+          type: string
+          description: States when Recoup's capture started and how earlier incidents were sourced.
+      required:
+      - id
+      - generated_at
+      - claim_window
+      - incidents
+      - history_note
+    DateRange:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: string
+          format: date
+        end:
+          type: string
+          format: date
+      required:
+      - start
+      - end
+    TimeWindow:
+      type: object
+      additionalProperties: false
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+      required:
+      - start
+      - end
+    FunnelEventRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        event_type:
+          enum:
+          - book_interview_clicked
+          - connect_clicked
+        estimate_id:
+          type: string
+          format: uuid
+      required:
+      - event_type
+    Me:
+      type: object
+      additionalProperties: false
+      properties:
+        sub:
+          type: string
+        email:
+          type: string
+          format: email
+        pool:
+          enum:
+          - customer
+          - operator
+        mfa_at:
+          type: string
+          format: date-time
+        current_tenant_id:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        memberships:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              tenant_id:
+                type: string
+                format: uuid
+              tenant_name:
+                type: string
+              role:
+                enum:
+                - approver
+                - contributor
+                - viewer
+            required:
+            - tenant_id
+            - tenant_name
+            - role
+        csrf_token:
+          type: string
+          description: Send back in X-Recoup-CSRF on every state-changing request (ADR-017 §3).
+      required:
+      - sub
+      - email
+      - pool
+      - mfa_at
+      - current_tenant_id
+      - memberships
+      - csrf_token
+    TenantCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        anon_session_id:
+          type: string
+          format: uuid
+      required:
+      - name
+    Tenant:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          enum:
+          - active
+          - exiting
+          - deleted
+        pilot_agreement:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - name
+      - status
+      - pilot_agreement
+      - created_at
+    Member:
+      type: object
+      additionalProperties: false
+      properties:
+        sub:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          enum:
+          - approver
+          - contributor
+          - viewer
+        status:
+          enum:
+          - invited
+          - active
+          - removed
+      required:
+      - sub
+      - email
+      - role
+      - status
+    InvitationCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          enum:
+          - approver
+          - contributor
+          - viewer
+      required:
+      - email
+      - role
+    Invitation:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          enum:
+          - approver
+          - contributor
+          - viewer
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - email
+      - role
+      - expires_at
+    RoleChange:
+      type: object
+      additionalProperties: false
+      properties:
+        role:
+          enum:
+          - approver
+          - contributor
+          - viewer
+      required:
+      - role
+    PermissionStatement:
+      type: object
+      additionalProperties: false
+      properties:
+        effect:
+          enum:
+          - Allow
+          - Deny
+        actions:
+          type: array
+          items:
+            type: string
+        not_actions:
+          type: array
+          items:
+            type: string
+        resources:
+          type: array
+          items:
+            type: string
+        purpose:
+          type: string
+      required:
+      - effect
+      - resources
+      - purpose
+    PermissionList:
+      type: object
+      additionalProperties: false
+      properties:
+        template_version:
+          type: string
+        template_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        template_url:
+          type: string
+          format: uri
+        statements:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionStatement'
+      required:
+      - template_version
+      - template_sha256
+      - template_url
+      - statements
+      description: R-07. The list itself is owned by SECURITY.md; this endpoint serves it from the published template.
+    DiscoveryAnswers:
+      type: object
+      additionalProperties: false
+      properties:
+        seller:
+          enum:
+          - aws_inc
+          - aws_india
+          - reseller
+          - unknown
+          description: Who sells you AWS (Q-05, Q-20).
+        support_plan:
+          enum:
+          - basic
+          - developer
+          - business_classic
+          - enterprise_on_ramp
+          - enterprise_classic
+          - business_support_plus
+          - enterprise_support
+          - unified_operations
+          - unknown
+          description: Q-04, NFR-10.
+        log_retention:
+          enum:
+          - under_30_days
+          - 30_to_90_days
+          - over_90_days
+          - not_kept
+          - unknown
+          description: Q-08.
+      required:
+      - seller
+      - support_plan
+      - log_retention
+      description: Recorded at connection (ADR-014 §3).
+    ConnectionCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        aws_account_id:
+          type: string
+          pattern: ^[0-9]{12}$
+        discovery:
+          $ref: '#/components/schemas/DiscoveryAnswers'
+      required:
+      - aws_account_id
+      - discovery
+    CurExport:
+      type: object
+      additionalProperties: false
+      properties:
+        bucket:
+          type: string
+          minLength: 3
+          maxLength: 63
+        prefix:
+          type: string
+        region:
+          type: string
+        create_with_template:
+          type: boolean
+          description: Template creates the export and bucket (ADR-019 §2).
+      required:
+      - bucket
+      - prefix
+      - region
+      - create_with_template
+    Connection:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        aws_account_id:
+          type: string
+          pattern: ^[0-9]{12}$
+        status:
+          enum:
+          - pending_deploy
+          - testing
+          - connected
+          - failed
+          - disconnected
+        external_id:
+          type: string
+          description: Generated by Recoup, unique per connection (NFR-02). Visible to the tenant; never reused.
+        template:
+          type: object
+          additionalProperties: false
+          properties:
+            version:
+              type: string
+            sha256:
+              type: string
+            quick_create_url:
+              type: string
+              format: uri
+          required:
+          - version
+          - sha256
+          - quick_create_url
+        cur_export:
+          oneOf:
+          - $ref: '#/components/schemas/CurExport'
+          - type: 'null'
+        discovery:
+          $ref: '#/components/schemas/DiscoveryAnswers'
+        detected:
+          type: object
+          additionalProperties: false
+          properties:
+            legal_entity:
+              oneOf:
+              - type: string
+              - type: 'null'
+            health_api_available:
+              oneOf:
+              - type: boolean
+              - type: 'null'
+            supported:
+              type: boolean
+            unsupported_reason:
+              oneOf:
+              - enum:
+                - aispl_seller
+                - reseller
+                - non_usd
+              - type: 'null'
+          required:
+          - legal_entity
+          - health_api_available
+          - supported
+          - unsupported_reason
+        created_at:
+          type: string
+          format: date-time
+        disconnected_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        disconnect_reason:
+          oneOf:
+          - enum:
+            - assume_role_denied
+            - customer_request
+            - tenant_exit
+          - type: 'null'
+      required:
+      - id
+      - aws_account_id
+      - status
+      - external_id
+      - template
+      - cur_export
+      - discovery
+      - detected
+      - created_at
+      - disconnected_at
+      - disconnect_reason
+    CostExplorerEstimate:
+      type: object
+      additionalProperties: false
+      properties:
+        claim_window:
+          $ref: '#/components/schemas/DateRange'
+        services:
+          type: array
+          items:
+            type: string
+        regions:
+          type: array
+          items:
+            type: string
+        cost:
+          $ref: '#/components/schemas/AwsApiCost'
+      required:
+      - claim_window
+      - services
+      - regions
+      - cost
+    ConnectionCheck:
+      type: object
+      additionalProperties: false
+      properties:
+        check:
+          enum:
+          - assume_role
+          - cur_read
+          - cost_explorer
+          - health_api
+        outcome:
+          enum:
+          - pass
+          - fail
+          - unavailable
+        reason_code:
+          oneOf:
+          - enum:
+            - access_denied
+            - external_id_mismatch
+            - subscription_required
+            - bucket_not_found
+            - no_export_data
+            - throttled
+            - unknown
+          - type: 'null'
+        detail:
+          type: string
+      required:
+      - check
+      - outcome
+      - reason_code
+      - detail
+    ConnectionTest:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        connection_id:
+          type: string
+          format: uuid
+        status:
+          enum:
+          - queued
+          - running
+          - completed
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectionCheck'
+        fallback_offered:
+          type: boolean
+          description: True when Health isn't available on the plan (R-09, R-14).
+      required:
+      - id
+      - connection_id
+      - status
+      - started_at
+      - finished_at
+      - checks
+      - fallback_offered
+    CustomerIncidentCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        contract_id:
+          type: string
+        region:
+          type: string
+        window:
+          $ref: '#/components/schemas/TimeWindow'
+        source_note:
+          type: string
+          maxLength: 2000
+      required:
+      - contract_id
+      - region
+      - window
+      description: R-14. Labelled customer-supplied everywhere.
+    CustomerIncident:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        contract_id:
+          type: string
+        region:
+          type: string
+        window:
+          $ref: '#/components/schemas/TimeWindow'
+        label:
+          const: customer-supplied
+        entered_by:
+          type: string
+        entered_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - contract_id
+      - region
+      - window
+      - label
+      - entered_by
+      - entered_at
+    ReportCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        claim_window:
+          $ref: '#/components/schemas/DateRange'
+      description: Omit claim_window to use the open window.
+    Report:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        connection_id:
+          type: string
+          format: uuid
+        status:
+          enum:
+          - queued
+          - running
+          - completed
+          - failed
+        requested_at:
+          type: string
+          format: date-time
+        started_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        completed_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        claim_window:
+          $ref: '#/components/schemas/DateRange'
+        billing_basis:
+          oneOf:
+          - enum:
+            - cost_explorer
+            - cur2
+          - type: 'null'
+        reconciliation_available:
+          type: boolean
+          description: False without a usable CUR 2.0 export (R-27).
+        reconciliation_note:
+          oneOf:
+          - type: string
+          - type: 'null'
+        cost_explorer_calls_made:
+          type: integer
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimSummary'
+        totals:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageTotal'
+        free_packet_claim_id:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        failure:
+          oneOf:
+          - $ref: '#/components/schemas/Problem'
+          - type: 'null'
+      required:
+      - id
+      - connection_id
+      - status
+      - requested_at
+      - started_at
+      - completed_at
+      - claim_window
+      - billing_basis
+      - reconciliation_available
+      - reconciliation_note
+      - cost_explorer_calls_made
+      - claims
+      - totals
+      - free_packet_claim_id
+      - failure
+    ClaimFlags:
+      type: object
+      additionalProperties: false
+      properties:
+        ready:
+          type: boolean
+        expired:
+          type: boolean
+        may_have_expired:
+          type: boolean
+          description: Between the two deadline readings (Q-14).
+        credit_not_seen:
+          type: boolean
+        posted_line_changed:
+          type: boolean
+      required:
+      - ready
+      - expired
+      - may_have_expired
+      - credit_not_seen
+      - posted_line_changed
+    ClaimSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        connection_id:
+          type: string
+          format: uuid
+        aws_account_id:
+          type: string
+          pattern: ^[0-9]{12}$
+        contract_id:
+          type: string
+        region:
+          type: string
+        billing_period:
+          type: string
+          format: date
+        stage:
+          enum:
+          - detected
+          - eligible
+          - unproven
+          - not_eligible
+          - approved
+          - submitted
+          - granted
+          - denied
+          - posted
+          - refunded_outside_bill
+          - closed
+        stage_version:
+          type: integer
+        flags:
+          $ref: '#/components/schemas/ClaimFlags'
+        deadline_earlier:
+          type: string
+          format: date
+        deadline_later:
+          type: string
+          format: date
+        amounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Money'
+          description: One entry per money stage reached (R-02).
+        packet:
+          enum:
+          - complete
+          - not_ready
+          - not_built
+          description: 'not_built: free report beyond the one free packet (R-55).'
+      required:
+      - id
+      - connection_id
+      - aws_account_id
+      - contract_id
+      - region
+      - billing_period
+      - stage
+      - stage_version
+      - flags
+      - deadline_earlier
+      - deadline_later
+      - amounts
+      - packet
+    ClaimIncident:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        source:
+          enum:
+          - account_health
+          - public_health
+          - customer_supplied
+          - operator_entered
+        source_label:
+          type: string
+        event_arn:
+          oneOf:
+          - type: string
+          - type: 'null'
+        window:
+          $ref: '#/components/schemas/TimeWindow'
+        window_source:
+          enum:
+          - health_event
+          - entered_by_contributor
+          - confirmed_by_contributor
+        match:
+          type: object
+          additionalProperties: false
+          properties:
+            health_service:
+              oneOf:
+              - type: string
+              - type: 'null'
+            billed_product_code:
+              type: string
+            billed_region:
+              type: string
+          required:
+          - health_service
+          - billed_product_code
+          - billed_region
+        evidence_status:
+          enum:
+          - none
+          - uploaded
+          - parsed
+          - rejected
+      required:
+      - id
+      - source
+      - source_label
+      - event_arn
+      - window
+      - window_source
+      - match
+      - evidence_status
+    ExclusionResult:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        outcome:
+          enum:
+          - ruled_out
+          - not_ruled_out
+        basis:
+          enum:
+          - health_event_attribution
+          - contributor_attestation
+          - account_status
+          - none
+        detail:
+          type: string
+      required:
+      - id
+      - text
+      - outcome
+      - basis
+      - detail
+    Eligibility:
+      type: object
+      additionalProperties: false
+      properties:
+        result:
+          enum:
+          - eligible
+          - unproven
+          - not_eligible
+        reasons:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              code:
+                enum:
+                - logs_needed
+                - errors_unclassified
+                - exclusion_not_ruled_out
+                - below_minimum_credit
+                - scope_mismatch
+                - contract_changed_mid_cycle
+                - uptime_meets_commitment
+                - eligible
+              detail:
+                type: string
+            required:
+            - code
+            - detail
+        exclusions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExclusionResult'
+        monthly_uptime_percent:
+          oneOf:
+          - type: string
+          - type: 'null'
+        credit_percent:
+          oneOf:
+          - type: string
+          - type: 'null'
+        charges:
+          type: array
+          items:
+            $ref: '#/components/schemas/BilledCharge'
+        credit:
+          oneOf:
+          - $ref: '#/components/schemas/Money'
+          - type: 'null'
+        claimable:
+          type: boolean
+        contract:
+          type: object
+          additionalProperties: false
+          properties:
+            contract_id:
+              type: string
+            version:
+              type: string
+            source_url:
+              type: string
+              format: uri
+            snapshot_sha256:
+              type: string
+          required:
+          - contract_id
+          - version
+          - source_url
+          - snapshot_sha256
+          description: R-24
+        trace:
+          type: object
+          description: 'R-23: inputs, intervals summary, tier, rounding, result. Reproduces the amount exactly.'
+        computed_at:
+          type: string
+          format: date-time
+        stage_version:
+          type: integer
+      required:
+      - result
+      - reasons
+      - exclusions
+      - monthly_uptime_percent
+      - credit_percent
+      - charges
+      - credit
+      - claimable
+      - contract
+      - trace
+      - computed_at
+      - stage_version
+    Claim:
+      allOf:
+      - $ref: '#/components/schemas/ClaimSummary'
+      - type: object
+        required:
+        - incidents
+        - eligibility
+        - not_ready_reasons
+        - content_hash
+        - approval
+        - submissions
+        - outcome
+        properties:
+          incidents:
+            type: array
+            items:
+              $ref: '#/components/schemas/ClaimIncident'
+          eligibility:
+            oneOf:
+            - $ref: '#/components/schemas/Eligibility'
+            - type: 'null'
+          not_ready_reasons:
+            type: array
+            items:
+              type: string
+          content_hash:
+            oneOf:
+            - type: string
+            - type: 'null'
+          approval:
+            oneOf:
+            - $ref: '#/components/schemas/Approval'
+            - type: 'null'
+          submissions:
+            type: array
+            items:
+              $ref: '#/components/schemas/Submission'
+          outcome:
+            oneOf:
+            - $ref: '#/components/schemas/Outcome'
+            - type: 'null'
+    WindowUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          enum:
+          - confirm
+          - enter
+        window:
+          $ref: '#/components/schemas/TimeWindow'
+      required:
+      - action
+      description: 'ADR-011 §2: P-02 enters or confirms windows.'
+    AttestationCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        exclusion_id:
+          type: string
+        statement:
+          const: The cause was not on our side for this exclusion.
+      required:
+      - exclusion_id
+      - statement
+    EvidenceUploadCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        claim_incident_id:
+          type: string
+          format: uuid
+        format_id:
+          enum:
+          - apigw-access-log-jsonl/1
+          - canonical-request-csv/1
+          - context-document/1
+        file_name:
+          type: string
+          maxLength: 255
+        size_bytes:
+          type: integer
+          minimum: 1
+          maximum: 104857600
+      required:
+      - claim_incident_id
+      - format_id
+      - file_name
+      - size_bytes
+      description: 'Limits: docs/contracts/uploads/README.md'
+    EvidenceUpload:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        claim_incident_id:
+          type: string
+          format: uuid
+        format_id:
+          type: string
+        status:
+          enum:
+          - awaiting_upload
+          - received
+          - parsing
+          - parsed
+          - rejected
+        sha256:
+          oneOf:
+          - type: string
+          - type: 'null'
+        rejection:
+          oneOf:
+          - type: object
+            additionalProperties: false
+            properties:
+              code:
+                type: string
+              detail:
+                type: string
+              malformed_lines:
+                type: integer
+            required:
+            - code
+            - detail
+          - type: 'null'
+        presigned_post:
+          oneOf:
+          - type: object
+            additionalProperties: false
+            properties:
+              url:
+                type: string
+                format: uri
+              fields:
+                type: object
+                additionalProperties:
+                  type: string
+              expires_at:
+                type: string
+                format: date-time
+            required:
+            - url
+            - fields
+            - expires_at
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - claim_incident_id
+      - format_id
+      - status
+      - sha256
+      - rejection
+      - presigned_post
+      - created_at
+    LogExcerpt:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        line_count:
+          type: integer
+        dropped_fields:
+          type: array
+          items:
+            type: string
+        redactions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              kind:
+                enum:
+                - email
+                - ipv4
+                - ipv6
+                - bearer_token
+                - aws_access_key
+                - long_number
+              count:
+                type: integer
+            required:
+            - kind
+            - count
+        preview:
+          type: array
+          items:
+            type: string
+        reviewed_by:
+          oneOf:
+          - type: string
+          - type: 'null'
+        reviewed_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+      required:
+      - id
+      - line_count
+      - dropped_fields
+      - redactions
+      - preview
+      - reviewed_by
+      - reviewed_at
+      description: R-29
+    Packet:
+      type: object
+      additionalProperties: false
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        complete:
+          type: boolean
+        entitlement:
+          enum:
+          - free_largest
+          - pilot
+          - not_built
+        missing:
+          type: array
+          items:
+            type: string
+        fields:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              id:
+                type: string
+              label:
+                type: string
+              value:
+                type: string
+              source:
+                type: string
+            required:
+            - id
+            - label
+            - value
+            - source
+        deadline_earlier:
+          type: string
+          format: date
+        deadline_later:
+          type: string
+          format: date
+        content_hash:
+          type: string
+        attachment_path:
+          oneOf:
+          - type: string
+            description: GET this path for the redacted excerpts (R-31).
+          - type: 'null'
+        support_center_url:
+          type: string
+          format: uri
+          description: Opens the Support Center create-case page (R-31, ADR-007 §3).
+        filing_instructions:
+          type: string
+      required:
+      - claim_id
+      - version
+      - complete
+      - entitlement
+      - missing
+      - fields
+      - deadline_earlier
+      - deadline_later
+      - content_hash
+      - attachment_path
+      - support_center_url
+      - filing_instructions
+    ApprovalCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_stage_version:
+          type: integer
+        content_hash:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        amount:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]{2}$
+          description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+      required:
+      - expected_stage_version
+      - content_hash
+      - amount
+      description: 'R-36: the server rejects any mismatch with the current claim.'
+    Approval:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          enum:
+          - active
+          - declined
+          - revoked
+          - invalidated
+          - expired
+          - consumed
+        approver:
+          type: string
+        content_hash:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        stage_version:
+          type: integer
+        policy_revision:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        reason:
+          oneOf:
+          - type: string
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - status
+      - approver
+      - content_hash
+      - amount
+      - stage_version
+      - policy_revision
+      - expires_at
+      - reason
+      - created_at
+    ReasonedCommand:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_stage_version:
+          type: integer
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required:
+      - expected_stage_version
+      - reason
+    SubmissionCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_stage_version:
+          type: integer
+        aws_case_id:
+          type: string
+          pattern: ^[0-9]{5,20}$
+        resubmission_of:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+      required:
+      - expected_stage_version
+      - aws_case_id
+    Submission:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        aws_case_id:
+          type: string
+        label:
+          const: customer-entered
+        entered_by:
+          type: string
+        entered_at:
+          type: string
+          format: date-time
+        resubmission_of:
+          oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+      required:
+      - id
+      - aws_case_id
+      - label
+      - entered_by
+      - entered_at
+      - resubmission_of
+    OutcomeCreate:
+      oneOf:
+      - type: object
+        additionalProperties: false
+        properties:
+          expected_stage_version:
+            type: integer
+          outcome:
+            const: granted
+          granted_amount:
+            type: string
+            pattern: ^-?[0-9]+\.[0-9]{2}$
+            description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+          granted_on:
+            type: string
+            format: date
+        required:
+        - expected_stage_version
+        - outcome
+        - granted_amount
+        - granted_on
+      - type: object
+        additionalProperties: false
+        properties:
+          expected_stage_version:
+            type: integer
+          outcome:
+            const: denied
+          denial_reason_code:
+            $ref: '#/components/schemas/DenialReasonCode'
+          denial_case_text:
+            type: string
+            maxLength: 20000
+        required:
+        - expected_stage_version
+        - outcome
+        - denial_reason_code
+    DenialReasonCode:
+      enum:
+      - not_eligible_per_aws
+      - outside_deadline
+      - insufficient_evidence
+      - excluded_cause
+      - already_credited
+      - duplicate_request
+      - other
+      description: Fixed list (ADR-011 §4). Pasted case text is stored as untrusted data (NFR-09).
+    Outcome:
+      type: object
+      additionalProperties: false
+      properties:
+        outcome:
+          enum:
+          - granted
+          - denied
+        granted:
+          oneOf:
+          - $ref: '#/components/schemas/Money'
+          - type: 'null'
+        granted_on:
+          oneOf:
+          - type: string
+            format: date
+          - type: 'null'
+        denial_reason_code:
+          oneOf:
+          - $ref: '#/components/schemas/DenialReasonCode'
+          - type: 'null'
+        predicted:
+          type: object
+          additionalProperties: false
+          properties:
+            result:
+              type: string
+            credit:
+              oneOf:
+              - $ref: '#/components/schemas/Money'
+              - type: 'null'
+          required:
+          - result
+          - credit
+          description: 'R-40: kept next to the outcome.'
+        label:
+          const: customer-entered
+        entered_by:
+          type: string
+        entered_at:
+          type: string
+          format: date-time
+      required:
+      - outcome
+      - granted
+      - granted_on
+      - denial_reason_code
+      - predicted
+      - label
+      - entered_by
+      - entered_at
+    CreditLine:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        billing_period:
+          type: string
+          format: date
+        usage_account_id:
+          type: string
+          pattern: ^[0-9]{12}$
+        product_code:
+          oneOf:
+          - type: string
+          - type: 'null'
+        line_item_type:
+          enum:
+          - Credit
+          - Refund
+        description:
+          oneOf:
+          - type: string
+          - type: 'null'
+        amount:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]{2}$
+          description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+        fingerprint:
+          type: string
+        source:
+          const: cur2
+      required:
+      - id
+      - billing_period
+      - usage_account_id
+      - product_code
+      - line_item_type
+      - description
+      - amount
+      - fingerprint
+      - source
+    CreditMatch:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        claim_id:
+          type: string
+          format: uuid
+        credit_line:
+          $ref: '#/components/schemas/CreditLine'
+        kind:
+          enum:
+          - verified
+          - possible
+        status:
+          enum:
+          - auto_applied
+          - proposed
+          - confirmed
+          - rejected
+        failed_criteria:
+          type: array
+          items:
+            enum:
+            - amount_differs
+            - product_code_missing
+            - product_code_other
+            - refund_type
+            - multiple_candidates
+        variance_vs_estimate:
+          oneOf:
+          - type: string
+            pattern: ^-?[0-9]+\.[0-9]{2}$
+            description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+          - type: 'null'
+        variance_vs_granted:
+          oneOf:
+          - type: string
+            pattern: ^-?[0-9]+\.[0-9]{2}$
+            description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+          - type: 'null'
+        decided_by:
+          oneOf:
+          - type: string
+          - type: 'null'
+        decided_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+      required:
+      - id
+      - claim_id
+      - credit_line
+      - kind
+      - status
+      - failed_criteria
+      - variance_vs_estimate
+      - variance_vs_granted
+      - decided_by
+      - decided_at
+    MatchDecision:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_stage_version:
+          type: integer
+        decision:
+          enum:
+          - confirm
+          - reject
+      required:
+      - expected_stage_version
+      - decision
+    RefundOutsideBillCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_stage_version:
+          type: integer
+        amount:
+          type: string
+          pattern: ^-?[0-9]+\.[0-9]{2}$
+          description: USD amount as a decimal string with two places (NFR-03). Never a JSON number.
+        refunded_on:
+          type: string
+          format: date
+      required:
+      - expected_stage_version
+      - amount
+      - refunded_on
+    Ledger:
+      type: object
+      additionalProperties: false
+      properties:
+        as_of:
+          type: string
+          format: date-time
+        totals:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageTotal'
+        refunded_outside_bill_total:
+          $ref: '#/components/schemas/Money'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimSummary'
+        page:
+          $ref: '#/components/schemas/PageInfo'
+      required:
+      - as_of
+      - totals
+      - refunded_outside_bill_total
+      - claims
+      - page
+      description: 'R-48, R-54: posted is the only verified total; refunds outside the bill are never in it.'
+    EvidenceTrail:
+      type: object
+      additionalProperties: false
+      properties:
+        claim_id:
+          type: string
+          format: uuid
+        exported_at:
+          type: string
+          format: date-time
+        incidents:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimIncident'
+        contract:
+          type: object
+          additionalProperties: false
+          properties:
+            contract_id:
+              type: string
+            version:
+              type: string
+            snapshot_sha256:
+              type: string
+          required:
+          - contract_id
+          - version
+          - snapshot_sha256
+        evidence:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              upload_id:
+                type: string
+                format: uuid
+              format_id:
+                type: string
+              sha256:
+                type: string
+            required:
+            - upload_id
+            - format_id
+            - sha256
+        excerpts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              excerpt_id:
+                type: string
+                format: uuid
+              sha256:
+                type: string
+            required:
+            - excerpt_id
+            - sha256
+        approval:
+          oneOf:
+          - $ref: '#/components/schemas/Approval'
+          - type: 'null'
+        submissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Submission'
+        outcome:
+          oneOf:
+          - $ref: '#/components/schemas/Outcome'
+          - type: 'null'
+        credit_match:
+          oneOf:
+          - $ref: '#/components/schemas/CreditMatch'
+          - type: 'null'
+        transitions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              transition:
+                type: string
+              from_stage:
+                oneOf:
+                - enum:
+                  - detected
+                  - eligible
+                  - unproven
+                  - not_eligible
+                  - approved
+                  - submitted
+                  - granted
+                  - denied
+                  - posted
+                  - refunded_outside_bill
+                  - closed
+                - type: 'null'
+              to_stage:
+                enum:
+                - detected
+                - eligible
+                - unproven
+                - not_eligible
+                - approved
+                - submitted
+                - granted
+                - denied
+                - posted
+                - refunded_outside_bill
+                - closed
+              actor:
+                type: string
+              occurred_at:
+                type: string
+                format: date-time
+              evidence_type:
+                type: string
+            required:
+            - transition
+            - from_stage
+            - to_stage
+            - actor
+            - occurred_at
+            - evidence_type
+      required:
+      - claim_id
+      - exported_at
+      - incidents
+      - contract
+      - evidence
+      - excerpts
+      - approval
+      - submissions
+      - outcome
+      - credit_match
+      - transitions
+      description: R-47; every hash re-verifies.
+    DeadlineList:
+      type: object
+      additionalProperties: false
+      properties:
+        as_of:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              claim_id:
+                type: string
+                format: uuid
+              stage:
+                enum:
+                - detected
+                - eligible
+                - unproven
+                - not_eligible
+                - approved
+                - submitted
+                - granted
+                - denied
+                - posted
+                - refunded_outside_bill
+                - closed
+              deadline_earlier:
+                type: string
+                format: date
+              days_left:
+                type: integer
+              ready:
+                type: boolean
+            required:
+            - claim_id
+            - stage
+            - deadline_earlier
+            - days_left
+            - ready
+      required:
+      - as_of
+      - items
+      description: R-46
+    PublicIncidentCreate:
+      type: object
+      additionalProperties: false
+      properties:
+        contract_id:
+          type: string
+        region:
+          type: string
+        window:
+          $ref: '#/components/schemas/TimeWindow'
+        source_url:
+          type: string
+          format: uri
+          pattern: ^https://health\.aws\.amazon\.com/
+        description:
+          type: string
+          maxLength: 4000
+      required:
+      - contract_id
+      - region
+      - window
+      - source_url
+      description: Pre-capture history (ADR-021 §6).
+    PublicIncident:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        source:
+          enum:
+          - eventbridge
+          - health_api
+          - operator_entered
+        event_arn:
+          oneOf:
+          - type: string
+          - type: 'null'
+        service:
+          type: string
+        region:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+        status:
+          enum:
+          - open
+          - closed
+          - upcoming
+        source_url:
+          oneOf:
+          - type: string
+          - type: 'null'
+        captured_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - source
+      - event_arn
+      - service
+      - region
+      - start_time
+      - end_time
+      - status
+      - source_url
+      - captured_at
+    SlaReview:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        contract_id:
+          type: string
+        latest_version:
+          type: string
+        detected_at:
+          type: string
+          format: date-time
+        diff_summary:
+          type: string
+        status:
+          enum:
+          - open
+          - dismissed
+          - resolved_by_new_version
+        decided_by:
+          oneOf:
+          - type: string
+          - type: 'null'
+        decided_at:
+          oneOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+      required:
+      - id
+      - contract_id
+      - latest_version
+      - detected_at
+      - diff_summary
+      - status
+      - decided_by
+      - decided_at
+    EntitlementUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        pilot_agreement:
+          type: boolean
+      required:
+      - pilot_agreement

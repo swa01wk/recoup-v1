@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:tenant.data_deleted:1",
+  "title": "tenant.data_deleted v1",
+  "description": "Raw data for a tenant or connection was deleted on the retention schedule. Requirements: R-53.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "tenant.data_deleted"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "tenant"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "scope_id",
+        "deleted"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "connection",
+            "tenant"
+          ]
+        },
+        "scope_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deleted": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

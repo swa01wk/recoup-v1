@@ -8,6 +8,7 @@ Statuses:
 - **Decided:** no further input needed.
 - **Decided, verify:** the decision stands, but a named fact must be confirmed; if it comes out differently, the decision is revisited.
 - **Accepted, validate:** a fact about customers that only interviews can answer. We build on the assumption, and it stays a hypothesis until interview evidence exists. Nobody can decide it on the customer's behalf.
+- **Open, assumption:** raised after G1 (Stage 2a). Design builds on the assumption A-xx until the named person answers.
 
 ## Summary
 
@@ -48,6 +49,10 @@ Statuses:
 | Q-33 | V-03 | Decided | Accepted | REQUIREMENTS.md |
 | Q-34 | KPI-11 | Decided | Accepted, ≥80% | REQUIREMENTS.md |
 | Q-35 | Kill thresholds | Decided | KPI-02 <30%; KPI-10 median <$10k | KPI table |
+| Q-36 | Who creates a tenant and manages members | Open, assumption | A-36: first user creates it and is approver; approvers manage members | [ADR-017](../adr/ADR-017-auth-cognito-oidc-bff.md) |
+| Q-37 | API Gateway access-log fields for an internal error | Open, assumption | A-37: 5xx minus integration failures; missing fields → unproven | [uploads](../contracts/uploads/README.md#evidence-rules) |
+| Q-38 | Approval expiry length | Open, assumption | A-38: 7 days | R-36 |
+| Q-39 | Rounding where the SLA is silent | Open, assumption | A-39: round the final credit to the cent, half-even | [SLA contract format](../contracts/sla-contract/README.md) |
 
 ## Still open
 
@@ -57,6 +62,8 @@ Statuses:
 3. How their accounts are organised (Q-11, Q-19).
 4. The CUR rows of any SLA credit they've received, anonymised (Q-12).
 5. Their reaction to a 20% contingency (Q-02).
+
+**Raised in Stage 2a (2026-11-27), open with assumptions:** Q-36 and Q-38 need the product owner; Q-37 and Q-39 need AWS (add them to the Q-14 Account and billing case) or the first real grant.
 
 **AWS verification tasks** (decisions stand until these say otherwise):
 
@@ -223,6 +230,26 @@ Accepted, target ≥80% of ready packets filed before their deadline. Below that
 ### Q-35 Kill thresholds — Decided
 Kill option B if fewer than 30% of interviewees had a claimable incident in 12 months (KPI-02), or if median expected annual credits per partner come in under $10k (KPI-10). **Why:** 30% is "well below" the 50% confirm line; $10k is the low end of the board's range, so we don't kill on a borderline result.
 
+### Q-36 Who creates a tenant and manages its members? — Open, assumption A-36
+- **Gap:** R-56 and Q-18 define named users with one of three roles, but no requirement says who creates a tenant, who invites users, or who changes roles.
+- **A-36:** the first person to sign up creates the tenant and becomes its approver. Approvers invite members by email, change roles and remove members. A tenant always keeps at least one approver. Every change is audited (R-56).
+- **Who answers:** product owner. **Raised by:** Stage 2a ([ADR-017](../adr/ADR-017-auth-cognito-oidc-bff.md) §6).
+
+### Q-37 Which API Gateway access-log fields mark an internal error? — Open, assumption A-37
+- **Gap:** the API Gateway SLA counts only requests that fail with an API Gateway internal error (DISCOVERY.md). Access logs carry a status, and optionally `integrationStatus` and `error.responseType`, but which combination means "internal" is interpretation, so ADR-005 §3 makes it a question.
+- **A-37:** a 5xx is an Error unless `error.responseType` is `INTEGRATION_FAILURE` or `INTEGRATION_TIMEOUT`, or `integrationStatus` is 5xx. A 5xx row without both fields leaves the claim *unproven* ([uploads](../contracts/uploads/README.md#evidence-rules)).
+- **Verify:** the API Gateway access-log variable reference, plus AWS's answer in the Q-14 Account and billing case. **Who answers:** AWS, via the product owner.
+
+### Q-38 How long is an approval valid? — Open, assumption A-38
+- **Gap:** R-36 binds an expiry to every approval but gives no length. The hackathon used 24 hours. That's short when the customer files in Support Center themselves (ADR-007) and may file days later.
+- **A-38:** 7 days. An approval that expires before a case ID is entered invalidates the approval, the claim goes back to eligibility, and re-approval is needed (the `invalidate` transition).
+- **Who answers:** product owner, before M2.
+
+### Q-39 How is a credit rounded when the SLA says nothing? — Open, assumption A-39
+- **Gap:** R-23 says "the contract's rounding", but the API Gateway SLA states no rounding rule.
+- **A-39:** compute in full Decimal precision and round only the final credit to the cent, half-even. The trace shows the unrounded value. Contract files mark this `basis: recoup_default`.
+- **Verify:** compare with the first granted amounts (KPI-07 variance). **Who answers:** AWS, or the first grants.
+
 ## Resolved
 
-All questions except Q-04, Q-06, Q-07 and Q-08 are decided as above (2026-11-27). Those four are accepted assumptions awaiting interview evidence.
+All questions except Q-04, Q-06, Q-07 and Q-08 are decided as above (2026-11-27). Those four are accepted assumptions awaiting interview evidence. Q-36 – Q-39 were raised in Stage 2a and are open with assumptions.

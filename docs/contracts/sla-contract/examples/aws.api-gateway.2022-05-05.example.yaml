@@ -1,0 +1,83 @@
+# EXAMPLE ONLY — shows the v1 format (sla-contract.v1.schema.json). Not a catalog entry.
+# The real file is written in M1 by the ADR-005 transcription process, next to its snapshot
+# (catalog/aws.api-gateway/2022-05-05/snapshot.txt). Until then:
+#   * snapshot_sha256 is all zeros, which the schema accepts and catalog CI rejects (R-15);
+#   * every `cites.lines` value is illustrative, because the snapshot file doesn't exist yet.
+# Terms below come from https://aws.amazon.com/api-gateway/sla/ (Last Updated May 5, 2022),
+# read 2026-11-27, and DISCOVERY.md "Catalog vs. the public SLA".
+schema_version: 1
+contract_id: aws.api-gateway
+service_name: Amazon API Gateway
+version: "2022-05-05"
+effective_from: "2022-05-05"
+effective_to: null
+source:
+  url: https://aws.amazon.com/api-gateway/sla/
+  read_at: "2026-11-27"
+  page_last_updated: "2022-05-05"
+  snapshot_path: catalog/aws.api-gateway/2022-05-05/snapshot.txt
+  snapshot_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+scope:
+  level: region
+  period: monthly_billing_cycle
+  cites: { lines: "5-7", quote: "for each AWS region, during any monthly billing cycle" }
+matching:
+  health_services: [APIGATEWAY]          # verify against a captured Health event (M1)
+  cur_product_codes: [AmazonApiGateway]  # verify against a customer CUR row (M1)
+commitment:
+  monthly_uptime_percent: "99.95"
+  cites: { lines: "5-7" }
+measurement:
+  kind: interval_request_availability
+  interval_minutes: 5
+  aggregation: mean_of_intervals
+  empty_interval_value: "100"
+  cites: { lines: "40-46", quote: "that interval is assumed to be 100% available" }
+  error_definition:
+    text: "Any Request that fails due to an API Gateway internal service error."
+    evidence_rule: "apigw-internal-5xx (docs/contracts/uploads/README.md); see Q-37"
+    cites: { lines: "47-48" }
+credit_tiers:
+  - { lower_inclusive: "99.0", upper_exclusive: "99.95", credit_percent: "10",  cites: { lines: "12-14" } }
+  - { lower_inclusive: "95.0", upper_exclusive: "99.0",  credit_percent: "25",  cites: { lines: "15" } }
+  - { lower_inclusive: null,   upper_exclusive: "95.0",  credit_percent: "100", cites: { lines: "16" } }
+credit_base:
+  text: "Total charges paid for API Gateway in the affected AWS Region for the monthly billing cycle."
+  cites: { lines: "9-11" }
+minimum_credit:
+  amount: "1.00"
+  currency: USD
+  rule: issued_only_if_exceeds
+  cites: { lines: "30-31", quote: "only if the credit amount for the applicable monthly billing cycle is greater than one dollar" }
+rounding:
+  places: 2
+  mode: ROUND_HALF_EVEN
+  basis: recoup_default
+  question: Q-39
+deadline_rule:
+  kind: end_of_nth_billing_cycle_after_incident
+  n: 2
+  readings:
+    earlier: "End of the first full billing cycle after the incident's cycle (January incident -> end of February)."
+    later: "End of the second full billing cycle after the incident's cycle (January incident -> end of March)."
+  cites: { lines: "18-19" }
+claim_fields:
+  - { id: subject,      label: "Subject line",                         source: constant, value: "SLA Credit Request", cites: { lines: "20" } }
+  - { id: incidents,    label: "Dates, times and AWS Regions of each incident", source: incidents,       cites: { lines: "21" } }
+  - { id: api_ids,      label: "Affected API Gateway API IDs",           source: evidence_excerpt, cites: { lines: "22" } }
+  - { id: billing_cycle, label: "Billing cycle claimed",                source: claim,            cites: { lines: "23" } }
+  - { id: request_logs, label: "Request logs documenting the errors, sensitive data removed", source: evidence_excerpt, cites: { lines: "24-25" } }
+exclusions:
+  - { id: outside_aws_control, text: "Factors outside AWS's reasonable control, including force majeure and Internet access beyond the API Gateway demarcation point.", evaluation: health_event_attribution, cites: { lines: "33" } }
+  - { id: customer_actions,    text: "The customer's voluntary actions or inactions (for example scaling, security group, VPC, authentication or encryption-key settings).", evaluation: contributor_attestation, cites: { lines: "34" } }
+  - { id: customer_technology, text: "The customer's equipment, software or other technology.", evaluation: contributor_attestation, cites: { lines: "35" } }
+  - { id: best_practices,      text: "Failure to follow the best practices in the API Gateway Developer Guide.", evaluation: contributor_attestation, cites: { lines: "36" } }
+  - { id: suspension,          text: "AWS suspending or terminating the customer's right to use API Gateway.", evaluation: account_status, cites: { lines: "37" } }
+evidence_formats:
+  - apigw-access-log-jsonl/1
+  - canonical-request-csv/1
+interpretations:
+  - question: Q-37
+    text: "Which access-log fields separate an API Gateway internal error from an integration (backend) error."
+  - question: Q-39
+    text: "The SLA states no rounding rule; Recoup rounds the final credit to the cent."

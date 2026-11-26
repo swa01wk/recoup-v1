@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:public_incident.updated:1",
+  "title": "public_incident.updated v1",
+  "description": "The public incident projection changed for one Health event ARN (ADR-021). Requirements: R-34.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "public_incident.updated"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "public_incident"
+    },
+    "tenant_id": {
+      "type": "null"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public_incident_id",
+        "source",
+        "status"
+      ],
+      "properties": {
+        "public_incident_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "event_arn": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "enum": [
+            "eventbridge",
+            "health_api",
+            "operator_entered"
+          ]
+        },
+        "status": {
+          "enum": [
+            "open",
+            "closed",
+            "upcoming"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:claim.stage_changed:1",
+  "title": "claim.stage_changed v1",
+  "description": "A claim moved between stages, per docs/contracts/claim-state-machine.yaml. Requirements: R-01, NFR-08.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "claim.stage_changed"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "claim"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "transition",
+        "from_stage",
+        "to_stage",
+        "stage_version",
+        "evidence_type",
+        "evidence_id"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "transition": {
+          "type": "string"
+        },
+        "from_stage": {
+          "oneOf": [
+            {
+              "enum": [
+                "detected",
+                "eligible",
+                "unproven",
+                "not_eligible",
+                "approved",
+                "submitted",
+                "granted",
+                "denied",
+                "posted",
+                "refunded_outside_bill",
+                "closed"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to_stage": {
+          "enum": [
+            "detected",
+            "eligible",
+            "unproven",
+            "not_eligible",
+            "approved",
+            "submitted",
+            "granted",
+            "denied",
+            "posted",
+            "refunded_outside_bill",
+            "closed"
+          ]
+        },
+        "stage_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence_type": {
+          "type": "string"
+        },
+        "evidence_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

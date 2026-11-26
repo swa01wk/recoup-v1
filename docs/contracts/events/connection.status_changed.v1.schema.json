@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:connection.status_changed:1",
+  "title": "connection.status_changed v1",
+  "description": "An AWS connection changed status (connected, failed, disconnected). Requirements: R-09, R-11, R-53.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "connection.status_changed"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "aws_connection"
+    },
+    "tenant_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "connection_id",
+        "from_status",
+        "to_status"
+      ],
+      "properties": {
+        "connection_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "from_status": {
+          "type": "string"
+        },
+        "to_status": {
+          "enum": [
+            "pending_deploy",
+            "testing",
+            "connected",
+            "failed",
+            "disconnected"
+          ]
+        },
+        "reason_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

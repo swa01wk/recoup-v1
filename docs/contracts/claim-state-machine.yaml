@@ -1,0 +1,153 @@
+# Claim state machine — contract version 1.0.0 (Stage 2a, 2026-11-27)
+# Owner of the stage ORDER: ADR-004. Owner of names, transitions and guards: this file.
+# Claim key: ADR-024 (account × contract × Region × billing cycle).
+# The control plane implements exactly these transitions; any other move is rejected (R-01, R-04).
+# A diagram of this file is in docs/architecture/ARCHITECTURE.md#claim-state-machine.
+
+version: 1.0.0
+
+states:
+  detected:        { milestone: M1, money: none,       desc: "Matched incident(s) for the claim key; not yet evaluated." }
+  eligible:        { milestone: M1, money: estimate,   desc: "Eligible against the pinned contract; estimate shown." }
+  unproven:        { milestone: M1, money: estimate,   desc: "An exclusion or the evidence can't be settled (R-19, R-20)." }
+  not_eligible:    { milestone: M1, money: none,       desc: "Not eligible, with the reason (R-21 below minimum, R-22 scope)." }
+  approved:        { milestone: M2, money: approved,   desc: "Approved by an approver, bound to content and amount (R-36)." }
+  submitted:       { milestone: M2, money: submitted,  desc: "Customer filed in Support Center and entered the case ID (R-39)." }
+  granted:         { milestone: M2, money: granted,    desc: "Customer entered AWS's grant and amount (R-40)." }
+  denied:          { milestone: M2, money: none,       desc: "Customer entered AWS's denial and reason (R-40)." }
+  posted:          { milestone: M2, money: posted,     desc: "Matched to a CUR 2.0 Credit line (R-42, R-43). The only verified money." }
+  refunded_outside_bill: { milestone: M2, money: refunded_outside_bill, desc: "Customer-entered refund outside the bill (R-54). Never posted." }
+  closed:          { milestone: M2, money: none,       desc: "Denied and closed by an approver (R-41)." }
+
+terminal: [posted, refunded_outside_bill, closed]
+
+# Flags are shown with the stage but never change it.
+flags:
+  ready:              { set_by: system, rule: "eligible AND claimable AND before deadline_earlier AND packet complete (R-32)" }
+  expired:            { set_by: derived, rule: "stage in [detected, eligible, unproven] AND today > deadline_earlier; between the two readings show 'may have expired — check with AWS' (R-30, Q-14)" }
+  credit_not_seen:    { set_by: system, rule: "ADR-022 §6 (R-54)" }
+  posted_line_changed: { set_by: system, rule: "ADR-022 §7" }
+
+# Rules every transition obeys.
+common_guards:
+  - "Command carries expected_stage_version; it must equal claim.stage_version (optimistic lock). On success stage_version += 1."
+  - "Command carries an idempotency_key; a repeat returns the first result and makes no second transition (C01)."
+  - "Actor is authorised for the tenant and role named below (R-38, R-56); a denial is audited."
+  - "claim_transition row, audit_record row and outbox event 'claim.stage_changed' are written in the same transaction (NFR-08, ADR-006)."
+  - "Evidence named below exists and is referenced by ID in claim_transition.evidence_ref (ADR-004 §2)."
+  - "No fixture, replay or demo source can produce evidence (R-04)."
+
+transitions:
+  - id: create
+    from: null
+    to: detected
+    actor: { type: system, component: incidents }
+    evidence: claim_incident            # R-13: Health/public/customer incident matched to billed service and Region
+    requirements: [R-12, R-13, R-14]
+
+  - id: evaluate
+    from: [detected, eligible, unproven, not_eligible]
+    to: [eligible, unproven, not_eligible]
+    actor: { type: system, component: eligibility }
+    evidence: eligibility_result        # pinned contract version + snapshot hash + inputs hash + trace
+    guards:
+      - "eligibility_result.claim_stage_version == claim.stage_version (stale results rejected)"
+      - "contract version chosen by incident date (ADR-005 §4); mixed versions in one cycle => unproven (ADR-024 §1)"
+    requirements: [R-18, R-19, R-20, R-21, R-22, R-23, R-24]
+
+  - id: approve
+    from: [eligible]
+    to: approved
+    actor: { type: user, roles: [approver] }
+    evidence: approval
+    guards:
+      - "flag ready is true"
+      - "approval.content_hash == claim.content_hash AND approval.amount == claim.estimate_amount"
+      - "approval.claim_stage_version == claim.stage_version; approval.policy_revision == current policy revision"
+      - "session completed MFA within 12 hours (ADR-017 §4)"
+    effects: ["approval.status = active", "claim.approved_amount = approval.amount"]
+    requirements: [R-36, R-38, R-56]
+
+  - id: revoke
+    from: [approved]
+    to: eligible
+    actor: { type: user, roles: [approver] }
+    evidence: approval_revocation       # approval.status = revoked, reason required
+    guards: ["no case_submission exists for the active approval"]
+    requirements: [R-37]
+
+  - id: invalidate
+    from: [approved]
+    to: [eligible, unproven, not_eligible]
+    actor: { type: system, component: approvals }
+    evidence: approval_invalidation     # content hash, amount, stage version or policy changed, or expiry passed
+    effects: ["approval.status = invalidated | expired", "claim.approved_amount = null", "then evaluate"]
+    requirements: [R-36]
+
+  - id: submit
+    from: [approved]
+    to: submitted
+    actor: { type: user, roles: [approver, contributor] }
+    evidence: case_submission           # customer-entered AWS case ID, who and when
+    guards:
+      - "an active approval exists, not expired, bound to the current content_hash and stage_version"
+    effects: ["approval.status = consumed"]
+    requirements: [R-39, R-56]
+
+  - id: grant
+    from: [submitted]
+    to: granted
+    actor: { type: user, roles: [approver, contributor] }
+    evidence: case_outcome              # outcome=granted, granted_amount, granted_on; customer-entered
+    effects: ["claim.granted_amount = case_outcome.granted_amount", "prediction kept next to outcome (R-40)"]
+    requirements: [R-40]
+
+  - id: deny
+    from: [submitted]
+    to: denied
+    actor: { type: user, roles: [approver, contributor] }
+    evidence: case_outcome              # outcome=denied, denial_reason_code from the fixed list; pasted text stored as data
+    requirements: [R-40, NFR-09]
+
+  - id: reopen
+    from: [denied]
+    to: [eligible, unproven, not_eligible]
+    actor: { type: user, roles: [approver] }
+    evidence: eligibility_result        # fresh evaluation; the next submit links resubmission_of (R-41)
+    requirements: [R-41]
+
+  - id: close
+    from: [denied]
+    to: closed
+    actor: { type: user, roles: [approver] }
+    evidence: close_command             # reason required
+    requirements: [R-41]
+
+  - id: post_verified
+    from: [granted]
+    to: posted
+    actor: { type: system, component: reconciliation }
+    evidence: credit_match              # kind=verified, status=auto_applied (ADR-022 §3)
+    effects: ["claim.posted_amount = credit line amount", "variances recorded"]
+    requirements: [R-42, R-44]
+
+  - id: post_confirmed
+    from: [granted]
+    to: posted
+    actor: { type: user, roles: [contributor, approver] }   # P-03 holds contributor (Q-18)
+    evidence: credit_match              # kind=possible, status=confirmed, decided_by, decided_at (ADR-022 §4)
+    effects: ["claim.posted_amount = credit line amount", "variances recorded"]
+    requirements: [R-43]
+
+  - id: refund_outside_bill
+    from: [granted]
+    to: refunded_outside_bill
+    actor: { type: user, roles: [approver, contributor] }
+    evidence: refund_outside_bill       # customer-entered amount and date
+    guards: ["no credit_match with status auto_applied or confirmed"]
+    requirements: [R-54]
+
+# Commands that record a decision without changing the stage.
+non_transition_commands:
+  - { id: decline, on: eligible, actor_roles: [approver], records: "approval with status declined and a reason", requirements: [R-37] }
+  - { id: reject_match, on: granted, actor_roles: [contributor, approver], records: "credit_match status rejected", requirements: [R-43] }

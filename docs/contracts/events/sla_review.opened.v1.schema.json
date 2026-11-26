@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:recoup:events:sla_review.opened:1",
+  "title": "sla_review.opened v1",
+  "description": "The scheduled recheck found a difference between a published SLA and its latest snapshot. Requirements: R-17.",
+  "allOf": [
+    {
+      "$ref": "urn:recoup:events:envelope:1"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "sla_review.opened"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "aggregate_type": {
+      "const": "sla_contract"
+    },
+    "tenant_id": {
+      "type": "null"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "contract_id",
+        "latest_version_id",
+        "fetched_text_sha256"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "contract_id": {
+          "type": "string"
+        },
+        "latest_version_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "fetched_text_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
