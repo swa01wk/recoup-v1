@@ -33,10 +33,16 @@ S3 and DynamoDB formats are added when their snapshots are transcribed (Q-03 ver
 
 ## Evidence rules
 
-- **`apigw-internal-5xx`** (aws.api-gateway): a request counts as an *Error* when `status` is 5xx **and** it isn't an integration failure. The fields that separate the two (`integrationStatus`, `errorResponseType`) are an open interpretation: [Q-37](../../product/QUESTIONS.md#q-37-which-api-gateway-access-log-fields-mark-an-internal-error--open-assumption-a-37). Until it's answered, A-37 applies:
-  - a 5xx with `errorResponseType` of `INTEGRATION_FAILURE` or `INTEGRATION_TIMEOUT`, or with a 5xx `integrationStatus`, is **not** an Error;
-  - any other 5xx **is** an Error;
-  - a 5xx without both fields makes the claim *unproven*, with the reason "errors can't be classified".
+- **`apigw-internal-5xx`**(aws.api-gateway), decided in [Q-37](../../product/QUESTIONS.md#q-37-which-api-gateway-access-log-fields-mark-an-internal-error--decided-verify). A request counts as an *Error* only when **both** of these hold:
+  - `errorResponseType` is `DEFAULT_5XX`, the gateway response for a 5xx with no more specific type; and
+  - `integrationStatus` is empty or not 5xx.
+
+  These never count:
+  - every named, customer-attributable type: `API_CONFIGURATION_ERROR`, `AUTHORIZER_FAILURE`, `AUTHORIZER_CONFIGURATION_ERROR`, `INTEGRATION_FAILURE`, `INTEGRATION_TIMEOUT`, `THROTTLED`, `QUOTA_EXCEEDED`, `WAF_FILTERED`, and any 4xx type;
+  - a 5xx where Lambda itself returned 5xx, since that's Lambda's SLA, not API Gateway's.
+
+  A 5xx row without `errorResponseType` makes the claim *unproven* ("errors can't be classified"). The HTTP status isn't trusted on its own, because customers can change gateway-response status codes.
+
 - **`canonical-request-csv/1`:** `error_class = service_internal` is an Error. A 5xx row marked `unknown` makes the claim *unproven*.
 - **Availability per interval** = (requests − errors) ÷ requests × 100. An interval with no requests takes the contract's `empty_interval_value` (R-18).
 

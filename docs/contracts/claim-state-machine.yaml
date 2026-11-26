@@ -1,10 +1,10 @@
-# Claim state machine — contract version 1.0.0 (Stage 2a, 2026-11-27)
+# Claim state machine — contract version 1.1.0 (Stage 2a, 2026-11-27; 1.1.0: approval expiry and case date per Q-38)
 # Owner of the stage ORDER: ADR-004. Owner of names, transitions and guards: this file.
 # Claim key: ADR-024 (account × contract × Region × billing cycle).
 # The control plane implements exactly these transitions; any other move is rejected (R-01, R-04).
 # A diagram of this file is in docs/architecture/ARCHITECTURE.md#claim-state-machine.
 
-version: 1.0.0
+version: 1.1.0
 
 states:
   detected:        { milestone: M1, money: none,       desc: "Matched incident(s) for the claim key; not yet evaluated." }
@@ -65,7 +65,7 @@ transitions:
       - "approval.content_hash == claim.content_hash AND approval.amount == claim.estimate_amount"
       - "approval.claim_stage_version == claim.stage_version; approval.policy_revision == current policy revision"
       - "session completed MFA within 12 hours (ADR-017 §4)"
-    effects: ["approval.status = active", "claim.approved_amount = approval.amount"]
+    effects: ["approval.status = active", "approval.expires_at = end of claim.deadline_later, UTC (Q-38)", "claim.approved_amount = approval.amount"]
     requirements: [R-36, R-38, R-56]
 
   - id: revoke
@@ -80,7 +80,7 @@ transitions:
     from: [approved]
     to: [eligible, unproven, not_eligible]
     actor: { type: system, component: approvals }
-    evidence: approval_invalidation     # content hash, amount, stage version or policy changed, or expiry passed
+    evidence: approval_invalidation     # content hash, amount, stage version or policy changed, or expires_at passed with no case recorded (Q-38)
     effects: ["approval.status = invalidated | expired", "claim.approved_amount = null", "then evaluate"]
     requirements: [R-36]
 
@@ -91,6 +91,7 @@ transitions:
     evidence: case_submission           # customer-entered AWS case ID, who and when
     guards:
       - "an active approval exists, not expired, bound to the current content_hash and stage_version"
+      - "case_opened_on (customer-entered) <= claim.deadline_later; if > deadline_earlier the submission is flagged filed_after_earlier_deadline (Q-38, KPI-11)"
     effects: ["approval.status = consumed"]
     requirements: [R-39, R-56]
 

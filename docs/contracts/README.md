@@ -6,14 +6,18 @@ Contracts come before code (PROCESS.md principle 5). Backend and frontend each b
 
 | Contract | File | Version | Who builds against it |
 |---|---|---|---|
-| HTTP API | [openapi.yaml](openapi.yaml) (OpenAPI 3.1) | 0.1.0 | backend `api`; frontend client and MSW mocks ([ADR-016](../adr/ADR-016-frontend-react-spa.md)) |
-| Claim state machine | [claim-state-machine.yaml](claim-state-machine.yaml) | 1.0.0 | control plane guards; UI stage labels; tests |
+| HTTP API | [openapi.yaml](openapi.yaml) (OpenAPI 3.1) | 0.2.0 | backend `api`; frontend client and MSW mocks ([ADR-016](../adr/ADR-016-frontend-react-spa.md)) |
+| Claim state machine | [claim-state-machine.yaml](claim-state-machine.yaml) | 1.1.0 | control plane guards; UI stage labels; tests |
 | Event schemas | [events/](events/) (JSON Schema 2020-12; envelope + one file per type; examples) | envelope 1, each type 1 | outbox writers and consumers ([ADR-006](../adr/ADR-006-durable-state-no-fallback.md), [ADR-020](../adr/ADR-020-jobs-in-postgresql.md)) |
 | SLA contract file | [sla-contract/](sla-contract/) | 1 | catalog authors; catalog CI; eligibility ([ADR-005](../adr/ADR-005-sla-catalog-pinned-snapshots.md)) |
 | Evidence uploads | [uploads/](uploads/) | each format `/1` | upload parsers; P-02 instructions ([ADR-010](../adr/ADR-010-customer-evidence-by-upload.md)) |
-| Database | [db/schema.sql](db/schema.sql) | 0.1.0 (draft) | first M0 migration ([ADR-018](../adr/ADR-018-tenant-isolation-row-level-security.md)) |
+| Database | [db/schema.sql](db/schema.sql) | 0.2.0 (draft) | first M0 migration ([ADR-018](../adr/ADR-018-tenant-isolation-row-level-security.md)) |
 | Agent task, result and tool schemas | [agent-tools/](agent-tools/) | — | Not applicable in v1 ([ADR-011](../adr/ADR-011-no-model-in-v1.md)) |
 | AG-UI | [agui/](agui/) | — | Not applicable in v1 ([ADR-011](../adr/ADR-011-no-model-in-v1.md)) |
+
+## Changes
+
+- 2026-11-27: API 0.2.0, state machine 1.1.0, DB 0.2.0. Submissions carry `case_opened_on`; approvals expire at the end of the claim's later deadline (Q-38).
 
 ## Versioning rules
 

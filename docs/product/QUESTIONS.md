@@ -44,15 +44,15 @@ Statuses:
 | Q-28 | Recovery targets | Decided | RPO ≤5 min, RTO ≤4 h from M2 | NFR-12 |
 | Q-29 | Availability, accessibility, languages | Decided | No customer SLA; WCAG 2.2 AA; English | This doc |
 | Q-30 | Hosting region | Decided | us-west-2 | [ADR-012](../adr/ADR-012-hosting-region-us-west-2.md) |
-| Q-31 | J-01 contact data | Decided | Anonymous; external booking link | R-33, R-35 |
+| Q-31 | J-01 contact data | Decided | Anonymous; external booking link; no emailed results (revised 2026-11-27) | R-33, R-35 |
 | Q-32 | P-06 operator, J-09 | Decided | Accepted; product owner acts as P-06 | REQUIREMENTS.md |
 | Q-33 | V-03 | Decided | Accepted | REQUIREMENTS.md |
 | Q-34 | KPI-11 | Decided | Accepted, ≥80% | REQUIREMENTS.md |
 | Q-35 | Kill thresholds | Decided | KPI-02 <30%; KPI-10 median <$10k | KPI table |
-| Q-36 | Who creates a tenant and manages members | Open, assumption | A-36: first user creates it and is approver; approvers manage members | [ADR-017](../adr/ADR-017-auth-cognito-oidc-bff.md) |
-| Q-37 | API Gateway access-log fields for an internal error | Open, assumption | A-37: 5xx minus integration failures; missing fields → unproven | [uploads](../contracts/uploads/README.md#evidence-rules) |
-| Q-38 | Approval expiry length | Open, assumption | A-38: 7 days | R-36 |
-| Q-39 | Rounding where the SLA is silent | Open, assumption | A-39: round the final credit to the cent, half-even | [SLA contract format](../contracts/sla-contract/README.md) |
+| Q-36 | Who creates a tenant and manages members | Decided | First user creates it and is approver; approvers manage members; always ≥1 approver | [ADR-017](../adr/ADR-017-auth-cognito-oidc-bff.md) |
+| Q-37 | API Gateway access-log fields for an internal error | Decided, verify | Only `DEFAULT_5XX` with no Lambda 5xx counts; named customer-side types never count | [uploads](../contracts/uploads/README.md#evidence-rules) |
+| Q-38 | Approval expiry length | Decided | Valid until the claim's later deadline; content changes invalidate sooner; case-opened date recorded | R-36, KPI-11 |
+| Q-39 | Rounding where the SLA is silent | Decided, verify | Full precision; final credit rounded to the cent, half-even | [SLA contract format](../contracts/sla-contract/README.md) |
 
 ## Still open
 
@@ -63,7 +63,7 @@ Statuses:
 4. The CUR rows of any SLA credit they've received, anonymised (Q-12).
 5. Their reaction to a 20% contingency (Q-02).
 
-**Raised in Stage 2a (2026-11-27), open with assumptions:** Q-36 and Q-38 need the product owner; Q-37 and Q-39 need AWS (add them to the Q-14 Account and billing case) or the first real grant.
+**Raised and decided in Stage 2a (2026-11-27, delegated by the product owner):** Q-36 – Q-39. Q-37 and Q-39 still need confirming: add Q-37 to the Q-14 Account and billing case; check Q-39 against the first grants.
 
 **AWS verification tasks** (decisions stand until these say otherwise):
 
@@ -216,7 +216,8 @@ From M2: RPO ≤5 minutes and RTO ≤4 hours, in line with RDS point-in-time rec
 us-west-2. **Decided by:** Claude under delegation, [ADR-012](../adr/ADR-012-hosting-region-us-west-2.md).
 
 ### Q-31 J-01 contact data — Decided
-The no-access check needs no sign-in and no contact details. Booking uses an external scheduling link. Recoup stores an anonymous session ID and funnel events (KPI-03), plus an email only if the prospect asks for results to be sent. **Why:** less personal data to protect, and a lower barrier for the discovery tool.
+The no-access check needs no sign-in and no contact details. Booking uses an external scheduling link. Recoup stores an anonymous session ID and funnel events (KPI-03). **Why:** less personal data to protect, and a lower barrier for the discovery tool.
+- **Revised 2026-11-27 (Stage 2a, delegated):** dropped "an email only if the prospect asks for results to be sent". No R-xx asked for it, and it would be the only personal data the anonymous check holds. Each result has its own URL (`GET /estimates/{id}`), which a prospect can bookmark or forward to a colleague.
 
 ### Q-32 P-06 operator, J-09, US-16 — Decided
 Accepted. The product owner acts as P-06 in v1. P-06 sees the catalog and public incidents, never tenant data, and every P-06 action is audited.
@@ -230,26 +231,51 @@ Accepted, target ≥80% of ready packets filed before their deadline. Below that
 ### Q-35 Kill thresholds — Decided
 Kill option B if fewer than 30% of interviewees had a claimable incident in 12 months (KPI-02), or if median expected annual credits per partner come in under $10k (KPI-10). **Why:** 30% is "well below" the 50% confirm line; $10k is the low end of the board's range, so we don't kill on a borderline result.
 
-### Q-36 Who creates a tenant and manages its members? — Open, assumption A-36
+### Q-36 Who creates a tenant and manages its members? — Decided
 - **Gap:** R-56 and Q-18 define named users with one of three roles, but no requirement says who creates a tenant, who invites users, or who changes roles.
-- **A-36:** the first person to sign up creates the tenant and becomes its approver. Approvers invite members by email, change roles and remove members. A tenant always keeps at least one approver. Every change is audited (R-56).
-- **Who answers:** product owner. **Raised by:** Stage 2a ([ADR-017](../adr/ADR-017-auth-cognito-oidc-bff.md) §6).
+- **Answer:**
+  - **Self-serve.** The first person to sign up creates the tenant and becomes its approver.
+  - **Approvers manage members.** They invite by email (invitations expire after 7 days), change roles and remove members. A removal or role change revokes that member's sessions (ADR-017 §4).
+  - **There is always at least one approver.** Removing or demoting the last one is refused.
+  - **Every change is audited** (R-56). Recoup operators (P-06) can't add or change tenant members (Q-32).
+- **Why:** the free check is a self-serve funnel (J-01 → J-02, KPI-03). A sales-led setup by Recoup would add a step between the check and a connection, and would give P-06 a reason to touch tenant data. A single approver can lock themselves out, so the last-approver rule keeps every tenant able to approve claims.
+- **Decided by:** Claude under delegation, 2026-11-27. Supersedes A-36.
 
-### Q-37 Which API Gateway access-log fields mark an internal error? — Open, assumption A-37
-- **Gap:** the API Gateway SLA counts only requests that fail with an API Gateway internal error (DISCOVERY.md). Access logs carry a status, and optionally `integrationStatus` and `error.responseType`, but which combination means "internal" is interpretation, so ADR-005 §3 makes it a question.
-- **A-37:** a 5xx is an Error unless `error.responseType` is `INTEGRATION_FAILURE` or `INTEGRATION_TIMEOUT`, or `integrationStatus` is 5xx. A 5xx row without both fields leaves the claim *unproven* ([uploads](../contracts/uploads/README.md#evidence-rules)).
-- **Verify:** the API Gateway access-log variable reference, plus AWS's answer in the Q-14 Account and billing case. **Who answers:** AWS, via the product owner.
+### Q-37 Which API Gateway access-log fields mark an internal error? — Decided, verify
+- **Gap:** the API Gateway SLA counts only requests that fail with an API Gateway internal service error. Which access-log fields show that is interpretation (ADR-005 §3).
+- **Known (AWS, read 2026-11-27):**
+  - Several customer-side causes also return 5xx: an invalid API configuration (`API_CONFIGURATION_ERROR`, 500), a custom or Cognito authorizer that can't be reached or fails (`AUTHORIZER_CONFIGURATION_ERROR`, `AUTHORIZER_FAILURE`, 500), and integration failures or timeouts (`INTEGRATION_FAILURE`, `INTEGRATION_TIMEOUT`, 504).
+  - `DEFAULT_5XX` is the fallback for a 5xx with no more specific type.
+  - Changing `DEFAULT_5XX`'s status code changes every other 5xx response too, so the HTTP status alone can't be trusted ([gateway response types](https://docs.aws.amazon.com/apigateway/latest/developerguide/supported-gateway-response-types.html)).
+  - `$context.error.responseType` logs the gateway response type. For Lambda proxy integrations, `$context.integrationStatus` is the status code from AWS Lambda itself, not from the function code ([access-log variables](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-variables-for-access-logging.html)).
+- **Answer:** an Error is a request whose `errorResponseType` is `DEFAULT_5XX` and whose `integrationStatus` is empty or not 5xx.
+  - Every named type above, and every throttling, quota or WAF type, never counts.
+  - A 5xx row without `errorResponseType` makes the claim *unproven*.
+  - This replaces A-37, which would have counted authorizer and configuration errors as AWS's.
+- **Why:** Recoup's edge is claims that get granted (V-02, KPI-06 ≥70%). Overstating errors loses grants and the customer's trust. Understating only lowers an estimate.
+- **Verify:** ask AWS in the Q-14 Account and billing case whether an API Gateway internal error is always logged as `DEFAULT_5XX`. If AWS names another type, add it to the rule by a dated revision.
+- **Decided by:** Claude under delegation, 2026-11-27. Confidence: high on what to exclude; medium that `DEFAULT_5XX` is the only internal type.
 
-### Q-38 How long is an approval valid? — Open, assumption A-38
-- **Gap:** R-36 binds an expiry to every approval but gives no length. The hackathon used 24 hours. That's short when the customer files in Support Center themselves (ADR-007) and may file days later.
-- **A-38:** 7 days. An approval that expires before a case ID is entered invalidates the approval, the claim goes back to eligibility, and re-approval is needed (the `invalidate` transition).
-- **Who answers:** product owner, before M2.
+### Q-38 How long is an approval valid? — Decided
+- **Gap:** R-36 binds an expiry to every approval but gives no length. The hackathon used 24 hours.
+- **Answer:**
+  - **An approval stays valid until the end (UTC) of the claim's later deadline**, the last day a filing could still count (Q-14). Any change to content, amount, stage version or policy revision invalidates it sooner (R-36).
+  - **With the case ID, the customer also enters the date the case was opened in Support Center** (`case_opened_on`). It must be on or before the later deadline. A case opened after the earlier deadline is accepted, flagged *filed after the earlier deadline*, and counts against KPI-11.
+  - If an approval expires with no case recorded, the claim goes back through eligibility and shows as expired.
+- **Why:**
+  - R-36's binding already stops a stale approval from covering changed content. A fixed short window would only force re-approval of an unchanged claim while the approver (P-01) waits for the SRE (P-02) to file, which adds to KPI-08 with no safety gain.
+  - The deadline is the only real time limit.
+  - The case-opened date is what KPI-11 (filed before deadline) needs; the date the ID is typed in isn't.
+  - This replaces A-38 (7 days).
+- **Decided by:** Claude under delegation, 2026-11-27.
 
-### Q-39 How is a credit rounded when the SLA says nothing? — Open, assumption A-39
+### Q-39 How is a credit rounded when the SLA says nothing? — Decided, verify
 - **Gap:** R-23 says "the contract's rounding", but the API Gateway SLA states no rounding rule.
-- **A-39:** compute in full Decimal precision and round only the final credit to the cent, half-even. The trace shows the unrounded value. Contract files mark this `basis: recoup_default`.
-- **Verify:** compare with the first granted amounts (KPI-07 variance). **Who answers:** AWS, or the first grants.
+- **Answer:** compute in full Decimal precision and round only the final credit to the cent, half-even. The trace shows both values. Contract files mark this `basis: recoup_default`, and a contract that states its own rule uses that rule instead.
+- **Why:** rounding once, at the end, keeps the error under half a cent per claim, well inside KPI-07's ±10%. Half-even avoids a systematic upward bias across many claims.
+- **Verify:** compare with the first granted amounts (KPI-07 variance). A consistent one-cent gap means AWS rounds another way, and the default changes by a dated revision.
+- **Decided by:** Claude under delegation, 2026-11-27.
 
 ## Resolved
 
-All questions except Q-04, Q-06, Q-07 and Q-08 are decided as above (2026-11-27). Those four are accepted assumptions awaiting interview evidence. Q-36 – Q-39 were raised in Stage 2a and are open with assumptions.
+All questions except Q-04, Q-06, Q-07 and Q-08 are decided as above (2026-11-27). Those four are accepted assumptions awaiting interview evidence. Q-36 – Q-39 were raised and decided in Stage 2a (delegated); Q-37 and Q-39 still need confirming.

@@ -1,5 +1,5 @@
 # ADR-017: Sign-in uses Amazon Cognito user pools with required TOTP MFA; the API runs the OIDC flow and issues its own session cookie; roles live in Recoup's database
-Status: Accepted (decision delegated by the product owner under Q-18)    Date: 2026-11-27
+Status: Accepted (delegated by the product owner under Q-18; confirmed under delegation 2026-11-27)    Date: 2026-11-27
 
 **Context:** [Q-18](../product/QUESTIONS.md#q-18-users-roles-and-sign-in--decided) decided named users per tenant, each signing in individually with MFA, holding one role (approver, contributor, viewer), and delegated the provider choice to Stage 2 with an ADR. R-38 and R-56 need every action attributed to a user and only approvers able to approve. The project rules list auth as expensive to reverse. Constraints: AWS only for v1; all data in us-west-2 ([ADR-012](ADR-012-hosting-region-us-west-2.md)); the free check (J-01) needs no sign-in (Q-31). P-06 sees the catalog and public incidents, never tenant data (Q-32).
 
@@ -16,7 +16,7 @@ AWS facts (read 2026-11-27):
 3. **Backend-for-frontend session.** The `api` runs the OIDC authorisation-code flow with PKCE against Cognito, validates the ID token, and sets its own `HttpOnly; Secure; SameSite=Lax` session cookie whose session ID is stored server-side in PostgreSQL. Cognito tokens never reach browser JavaScript. State-changing requests also need a custom header (`X-Recoup-CSRF`) that matches the session (CSRF defence).
 4. **Sessions:** idle timeout 30 minutes, absolute lifetime 12 hours, revoked on sign-out, on membership removal and on role change. Approvals check that the session completed MFA (`amr` claim) less than 12 hours ago.
 5. **Anonymous free check:** no Cognito session. A random anonymous session ID in a first-party cookie ties funnel events together (Q-31, R-35). It's linked to a tenant only if that visitor later signs up.
-6. **Who manages members** is a gap, raised as [Q-36](../product/QUESTIONS.md#q-36-who-creates-a-tenant-and-manages-its-members--open-assumption-a-36). Until it's answered, the design builds on A-36: the first user creates the tenant and becomes its approver, and approvers invite members and change roles.
+6. **Who manages members** is decided in [Q-36](../product/QUESTIONS.md#q-36-who-creates-a-tenant-and-manages-its-members--decided): self-serve sign-up creates the tenant with the signer as approver; approvers manage members; a tenant always keeps at least one approver.
 
 **Alternatives:**
 - *Auth0, Clerk or WorkOS.* Rejected for v1: better enterprise SSO, but they add a second vendor that holds identities, outside AWS and possibly outside us-west-2. Revisit if a design partner requires SAML SSO; Cognito supports SAML too, so that alone doesn't force a move.
@@ -27,4 +27,11 @@ AWS facts (read 2026-11-27):
 **Consequences:**
 - Easier: MFA and credential handling are managed; identities stay in us-west-2; authorisation is one table the control plane owns.
 - Harder: we own the session table and the CSRF check; TOTP-only means some users need an authenticator app; Essentials is a paid tier (cost in TECH_STACK.md).
-- We must now: in SECURITY.md (2b), write the auth threats and session rules; in M0, an auth skeleton spec with tests for required MFA, cross-pool rejection and role checks (R-38, R-56); answer Q-36.
+- We must now: in SECURITY.md (2b), write the auth threats and session rules; in M0, an auth skeleton spec with tests for required MFA, cross-pool rejection, role checks and the last-approver rule (R-38, R-56).
+
+**Revisions:**
+- 2026-11-27: Confirmed under delegation, rechecked against what the product is for:
+  - The free check is a self-serve funnel, so sign-up has to be self-serve: Cognito managed login does that.
+  - The buyer's security reviewer (P-04) expects MFA and no tokens in the browser: points 1 and 3.
+  - Identities stay in us-west-2 with the rest of the data (ADR-012).
+  - The one foreseeable change is a design partner asking for SAML or OIDC single sign-on. Cognito supports that as a federated identity provider on the customer pool, but MFA then comes from the partner's identity provider, not from Cognito. Adding it needs a dated revision here naming that partner's MFA as the control, plus an R-xx through change control. No change to the rest of this ADR.

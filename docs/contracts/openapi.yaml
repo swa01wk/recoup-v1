@@ -3,7 +3,7 @@
 openapi: 3.1.0
 info:
   title: Recoup API
-  version: 0.1.0
+  version: 0.2.0
   description: 'Contract for Recoup v1 (Stage 2a, 2026-11-27). Versioning rules: docs/contracts/README.md.
 
 
@@ -279,7 +279,7 @@ paths:
   /tenants:
     post:
       operationId: createTenant
-      summary: Create a tenant; the creator becomes its approver (A-36)
+      summary: Create a tenant; the creator becomes its approver (Q-36)
       tags:
       - Tenancy
       x-requirements:
@@ -361,7 +361,7 @@ paths:
   /tenant/members/{sub}:
     patch:
       operationId: changeMemberRole
-      summary: 'Change a member''s role (A-36: approvers only)'
+      summary: 'Change a member''s role (Q-36: approvers only)'
       tags:
       - Tenancy
       x-requirements:
@@ -433,7 +433,7 @@ paths:
   /tenant/invitations:
     post:
       operationId: inviteMember
-      summary: Invite a member by email (A-36)
+      summary: Invite a member by email (Q-36)
       tags:
       - Tenancy
       x-requirements:
@@ -3837,6 +3837,11 @@ components:
         aws_case_id:
           type: string
           pattern: ^[0-9]{5,20}$
+        case_opened_on:
+          type: string
+          format: date
+          description: Date the case was opened in Support Center (customer-entered). Must be on or before the later deadline (Q-38); measures
+            KPI-11.
         resubmission_of:
           oneOf:
           - type: string
@@ -3845,6 +3850,7 @@ components:
       required:
       - expected_stage_version
       - aws_case_id
+      - case_opened_on
     Submission:
       type: object
       additionalProperties: false
@@ -3854,6 +3860,11 @@ components:
           format: uuid
         aws_case_id:
           type: string
+        case_opened_on:
+          type: string
+          format: date
+        filed_after_earlier_deadline:
+          type: boolean
         label:
           const: customer-entered
         entered_by:
@@ -3869,6 +3880,8 @@ components:
       required:
       - id
       - aws_case_id
+      - case_opened_on
+      - filed_after_earlier_deadline
       - label
       - entered_by
       - entered_at

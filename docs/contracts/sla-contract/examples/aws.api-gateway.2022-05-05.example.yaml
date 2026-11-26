@@ -35,7 +35,7 @@ measurement:
   cites: { lines: "40-46", quote: "that interval is assumed to be 100% available" }
   error_definition:
     text: "Any Request that fails due to an API Gateway internal service error."
-    evidence_rule: "apigw-internal-5xx (docs/contracts/uploads/README.md); see Q-37"
+    evidence_rule: "apigw-internal-5xx (docs/contracts/uploads/README.md), decided in Q-37"
     cites: { lines: "47-48" }
 credit_tiers:
   - { lower_inclusive: "99.0", upper_exclusive: "99.95", credit_percent: "10",  cites: { lines: "12-14" } }
@@ -78,6 +78,6 @@ evidence_formats:
   - canonical-request-csv/1
 interpretations:
   - question: Q-37
-    text: "Which access-log fields separate an API Gateway internal error from an integration (backend) error."
+    text: "An Error is a DEFAULT_5XX gateway response whose integrationStatus is not 5xx; named customer-attributable types never count."
   - question: Q-39
-    text: "The SLA states no rounding rule; Recoup rounds the final credit to the cent."
+    text: "The SLA states no rounding rule. Recoup computes in full precision and rounds the final credit to the cent, half-even."

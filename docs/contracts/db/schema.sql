@@ -1,4 +1,4 @@
--- Recoup v1 — DB schema draft, contract version 0.1.0 (Stage 2a, 2026-11-27)
+-- Recoup v1 — DB schema draft, contract version 0.2.0 (Stage 2a, 2026-11-27; 0.2.0 adds case_opened_on per Q-38)
 -- Owner: docs/contracts. Becomes the first Alembic migration in M0; after that,
 -- migrations own the schema and this file is regenerated from them.
 -- Plain PostgreSQL only (ADR-008 §5). Tested on PostgreSQL 16.
@@ -252,7 +252,7 @@ CREATE TABLE tenant_member (                         -- R-56, Q-18, Q-36
   PRIMARY KEY (tenant_id, user_sub)
 );
 
-CREATE TABLE tenant_invitation (                     -- A-36
+CREATE TABLE tenant_invitation (                     -- Q-36
   id          uuid PRIMARY KEY,
   tenant_id   uuid NOT NULL REFERENCES tenant,
   email       text NOT NULL,
@@ -548,7 +548,7 @@ CREATE TABLE approval (                              -- F-08; R-36 – R-38
   amount          numeric(14,2) NOT NULL,
   claim_stage_version integer NOT NULL,
   policy_revision text NOT NULL,
-  expires_at      timestamptz NOT NULL,              -- duration: Q-38
+  expires_at      timestamptz NOT NULL,              -- end of claim.deadline_later, UTC (Q-38)
   status          approval_status NOT NULL,
   reason          text,                              -- decline / revoke reason
   created_at      timestamptz NOT NULL,
@@ -562,6 +562,8 @@ CREATE TABLE case_submission (                       -- F-09; R-39, R-41
   claim_id         uuid NOT NULL REFERENCES claim,
   approval_id      uuid NOT NULL REFERENCES approval,
   aws_case_id      text NOT NULL CHECK (aws_case_id ~ '^[0-9]{5,20}$'),  -- customer-entered
+  case_opened_on   date NOT NULL,                    -- customer-entered (Q-38, KPI-11)
+  filed_after_earlier_deadline boolean NOT NULL,    -- case_opened_on > claim.deadline_earlier
   resubmission_of  uuid REFERENCES case_submission,
   entered_by       text NOT NULL,
   entered_at       timestamptz NOT NULL,

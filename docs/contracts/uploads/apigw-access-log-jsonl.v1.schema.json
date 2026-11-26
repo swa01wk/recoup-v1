@@ -40,14 +40,14 @@
         "integer",
         "null"
       ],
-      "description": "$context.integrationStatus. Needed to separate integration errors (Q-37)."
+      "description": "$context.integrationStatus. A 5xx here means Lambda, not API Gateway, failed (Q-37)."
     },
     "errorResponseType": {
       "type": [
         "string",
         "null"
       ],
-      "description": "$context.error.responseType. Needed to separate internal errors (Q-37)."
+      "description": "$context.error.responseType (a GatewayResponse type). Required to count any request as an Error (Q-37)."
     }
   },
   "additionalProperties": true
